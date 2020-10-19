@@ -1,7 +1,6 @@
 #sample_script_for GPL571
 
-library(biomaRt)
-library(tidyverse)
+
 listMarts(host="http://uswest.ensembl.org")
 ensembl = useMart("ENSEMBL_MART_ENSEMBL", host="http://uswest.ensembl.org")
 datasets = listDatasets(ensembl)
