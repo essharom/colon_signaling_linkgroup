@@ -60,13 +60,13 @@ get_platform_function <- function(platform_name){
 
 
 # TODO function to summarize by sample (median) and by protein (sum) instead of doing it at every platform
-sample_agg <- function(df){
-  df <- df %>% 
-    group_by(sample_id, uniprotswissprot) %>% 
-    summarise(expression = median(expression)) %>% 
-    ungroup()
-  
-}
+# sample_agg <- function(df){
+#   df <- df %>% 
+#     group_by(sample_id, uniprotswissprot) %>% 
+#     summarise(expression = median(expression)) %>% 
+#     ungroup()
+#   
+# }
 
 
 #GPL570 
@@ -135,3 +135,6 @@ GPL571_read <- function(file_list){
 #
 # output: dataframe of <uniprotswissprot> and <expression> values
 # }
+#
+# add function name to get_platform_function
+#

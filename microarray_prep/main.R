@@ -25,3 +25,4 @@ result_df_wide <- result_df %>%
   pivot_wider(names_from = condition, values_from = expression)
 
 write_tsv(result_df_wide, paste0(tissue_type, "_abundances.tsv"))
+write_tsv(tissue_sample_df, paste0(tissue_type, "_files.tsv"))
