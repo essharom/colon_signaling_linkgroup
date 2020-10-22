@@ -2,6 +2,10 @@ source('helper_functions.R')
 
 tissue_type = 'oesophagus'
 
+# add the new platform's name, which has analysis function in helper functions
+platform_functions_list <- c("GPL570",
+                             "GPL571")
+
 sample_root = "C://Users/sebes/Dropbox/linkgroup/signaling2020_sample/"
 
 sample_cels = list.files(path=sample_root, pattern = "(CEL|cel)(.gz)?$", recursive = TRUE)
@@ -17,7 +21,7 @@ sample_df <- sample_cels %>%
 
 tissue_sample_df <- sample_df %>% 
   filter(tissue_type == tissue_type) %>% 
-  filter(platform != "GPL17692")
+  filter(platform %in% platform_functions_list)
 
 conditions <- unique(tissue_sample_df$condition)
 
