@@ -17,15 +17,15 @@ library(stringr)
 #   return(x)
 # }
 
-data_download <- function(cancer_type, GSE_ID, phenotype, pheno_data, pheno_term, cell_files){
+data_download <- function(cancer_type, GSE_ID, GPL_ID, phenotype, pheno_data, pheno_term, cell_files){
   if(length(pheno_term[[1]]) != 0){
     files = ""
     for(j in 1:length(pheno_term[1])){
       files = append(files, cell_files[grep(pheno_term[[j]], pheno_data[['title']])])
     }
-    dir.create(paste("./Data/", cancer_type, phenotype,  GSE_ID, sep = ""))
+    dir.create(paste("./Data/", cancer_type, phenotype,  GPL_ID, GSE_ID, sep = ""))
     file.copy(paste("./myData/", files[-1], sep =""), 
-              paste("./Data/", cancer_type, phenotype,  GSE_ID, "/", files[-1], sep = ""))
+              paste("./Data/", cancer_type, phenotype, GPL_ID, GSE_ID, "/", files[-1], sep = ""))
   }
 }
 

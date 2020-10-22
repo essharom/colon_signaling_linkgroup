@@ -13,7 +13,6 @@ GSE28735	pancreatic	"human pancreatic nontumor tissue, patient sample"		"human p
 GSE15471	pancreatic	N		T
 GSE106189	pancreatic			mRNA_pancreasCancer_rep
 GSE46234	pancreatic	Patient C|Patient N		Patient P|Patient T
-GSM1060741	pancreatic			
 GSE71989	pancreatic	", human normal pancreatic tissue"		", human PDAC tissue"
 GSE42252	pancreatic			pancreatic cancer 
 GSE18490	pancreatic	Pancreas		
