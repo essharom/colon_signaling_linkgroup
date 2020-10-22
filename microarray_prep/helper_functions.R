@@ -4,6 +4,8 @@
 library("tidyverse")
 library("affy")
 library("biomaRt")
+library(filesstrings)
+library(stringr)
 
 # sigmoid <- function(x, m, b){
 #   1 * (exp(m * x + b)/(1 + exp(m * x + b)))
@@ -13,6 +15,18 @@ library("biomaRt")
 #   x <- sigmoid(log(x), log(2, base = 10), log(1/2))
 #   return(x)
 # }
+
+data_download <- function(cancer_type, GSE_ID, phenotype, pheno_data, pheno_term, cell_files){
+  if(length(pheno_term[[1]]) != 0){
+    files = ""
+    for(j in 1:length(pheno_term[1])){
+      files = append(files, cell_files[grep(pheno_term[[j]], pheno_data[['title']])])
+    }
+    dir.create(paste("./Data/", cancer_type, phenotype,  GSE_ID, sep = ""))
+    file.copy(paste("./myData/", files[-1], sep =""), 
+              paste("./Data/", cancer_type, phenotype,  GSE_ID, "/", files[-1], sep = ""))
+  }
+}
 
 ensembl = useEnsembl(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
 attributes = listAttributes(ensembl)

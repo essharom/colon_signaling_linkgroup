@@ -1,0 +1,26 @@
+GSE	Cancer_type	Normal	Intermediat	Cancer
+GSE39491	eosophagus	Case NE 	Case BE 	
+GSE26886	eosophagus	esophageal squamous epithelium	Barrett's esophagus_	esophageal adenocarcinoma
+GSE34619	eosophagus	NE-rep	BE-rep	
+GSE13083	eosophagus	Silberg*NE	Silberg*BE	
+GSE1420	eosophagus	normal esophageal epithelium 	Barretts esophagus 	adenocarcinoma 
+GSE74553	eosophagus	_ESO		_GEJAC|_tEAC
+GSE40220	esophagus	OS		
+GSE43288	pancreatic	N	Px|Pan	PaCa
+GSE63111	pancreatic	Donor |Adjacent 		PDAC
+GSE62452	pancreatic	Tn		Tp|Tc|T
+GSE28735	pancreatic	"human pancreatic nontumor tissue, patient sample"		"human pancreatic tumor tissue, patient sample"
+GSE15471	pancreatic	N		T
+GSE106189	pancreatic			mRNA_pancreasCancer_rep
+GSE46234	pancreatic	Patient C|Patient N		Patient P|Patient T
+GSM1060741	pancreatic			
+GSE71989	pancreatic	", human normal pancreatic tissue"		", human PDAC tissue"
+GSE42252	pancreatic			pancreatic cancer 
+GSE18490	pancreatic	Pancreas		
+GSE18674	pancreatic	Pancreas		
+GSE32688	pancreatic	non-malignant pancreas sample … (mRNA)		human PDAC … (mRNA)
+GSE22780	pancreatic	Normal		Tumor
+GSE19650	pancreatic	normal main pancreatic duct		Invasive cancer originating in IPMN
+GSE15471	pancreatic	N		T
+GSE106656	gastric		Intestinal metaplasia biopsy. Biological replicate	
+GSE83389	gastric		Intestinal Metaplasia_sample	
