@@ -22,9 +22,10 @@ data_download <- function(cancer_type, GSE_ID, GPL_ID, phenotype, pheno_data, ph
     for(j in 1:length(pheno_term[1])){
       files = append(files, cell_files[grep(pheno_term[[j]], pheno_data[['title']])])
     }
-    dir.create(paste("./Data/", cancer_type, phenotype,  GPL_ID, GSE_ID, sep = ""))
+    dir.create(paste("./Data/", cancer_type, phenotype,  GPL_ID, sep = ""))
+    dir.create(paste("./Data/", cancer_type, phenotype,  GPL_ID, "/", GSE_ID, sep = ""))
     file.copy(paste("./myData/", files[-1], sep =""), 
-              paste("./Data/", cancer_type, phenotype, GPL_ID, GSE_ID, "/", files[-1], sep = ""))
+              paste("./Data/", cancer_type, phenotype, GPL_ID, "/", GSE_ID, "/", files[-1], sep = ""))
   }
 }
 

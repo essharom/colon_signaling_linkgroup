@@ -16,15 +16,16 @@ for(i in 1:nrow(input_files)){
   # download GEO files
   df = getGEO(GSE, getGPL = FALSE, parseCharacteristics = FALSE)
   pheno = df[[1]]@phenoData@data
+  GPL = pheno[['platform_id']][1]
   getGEOSuppFiles(GSE)
   
   # file unzipping
   untar(paste(GSE, "/", GSE, "_RAW.tar", sep = ""), exdir = "myData")
   cells = list.files(path = "myData", pattern = "(CEL|cel)(.gz)?$")
   
-  data_download(type, GSE, "/Normal/", pheno, normal, cells)
-  data_download(type, GSE, "/Intermediate/", pheno, intermediate, cells)
-  data_download(type, GSE, "/Cancer/", pheno, cancer, cells)
+  data_download(type, GSE, GPL, "/Normal/", pheno, normal, cells)
+  data_download(type, GSE, GPL, "/Intermediate/", pheno, intermediate, cells)
+  data_download(type, GSE, GPL, "/Cancer/", pheno, cancer, cells)
   
   unlink("./myData", recursive = TRUE)
   unlink(paste("./", GSE, sep = ""), recursive = TRUE)
