@@ -98,6 +98,10 @@ get_platform_function <- function(platform_name){
     return (GPL97_read)
   }
   
+  if (platform_name == 'GPL5175'){
+    return (GPL5175_read)
+  }
+  
 }
 
 
@@ -116,10 +120,11 @@ get_platform_function <- function(platform_name){
 
 annotation_chip <- function(expression_df, biomart_attribute_name){
   probes = expression_df %>% 
-    mutate(probe_id = row.names(expression_df))
+    dplyr::mutate(probe_id = as.character(row.names(expression_df)))
   
   annot <- getBM(attributes=c(biomart_attribute_name,'uniprotswissprot'), mart = ensembl) %>% 
-    dplyr::rename(probe_id = biomart_attribute_name)
+    dplyr::rename(probe_id = biomart_attribute_name) %>% 
+    dplyr::mutate(probe_id = as.character(probe_id))
   
   affy <- annot %>% 
     filter(uniprotswissprot!="",
@@ -127,7 +132,7 @@ annotation_chip <- function(expression_df, biomart_attribute_name){
     left_join(probes) %>%
     dplyr::select(!probe_id) %>% 
     group_by(uniprotswissprot) %>% 
-    summarise_all(sum) %>%
+    summarise_all(sum, na.rm = TRUE) %>%
     ungroup() %>% 
     pivot_longer(cols = !uniprotswissprot, names_to = "sample_id", values_to = "expression") %>% 
     group_by(uniprotswissprot) %>% 
@@ -142,9 +147,10 @@ affy_workflow <- function(file_list, affy_cdfname){
     as.data.frame() # get the normalised data in a readable matrix
 }
 
-oligo_workflow <- function(file_list){
+oligo_workflow <- function(file_list, rma_target){
   raw_data <- oligo::read.celfiles(verbose=TRUE, filenames=file_list)
-  rma_df <- oligo::rma(raw_data) # mas5(); normalise the raw data
+  #rma_target = 'full'
+  rma_df <- oligo::rma(raw_data, target=rma_target) # target="core" for gene-level expression values
   expression_df = exprs(rma_df)	%>%
     as.data.frame() # get the normalised data in a readable matrix
 }
@@ -191,13 +197,27 @@ GPL571_read <- function(file_list){
 
 # GPL5175
 # [HuEx-1_0-st] Affymetrix Human Exon 1.0 ST Array [transcript (gene) version]
+#target = 'full'
 
+#
+# TODO if summarising by EXON chips is correct or median would be a better method
+# ALSO CHECK THIS FOR THE OTHER PLATFORMS AS WELL 
+
+GPL5175_read <- function(file_list){
+  
+  #file_list <- sample_df$file_path[1:2]
+  annotation_chip(oligo_workflow(file_list = file_list,
+                                   rma_target = 'full'),
+                    biomart_attribute_name = 'affy_huex_1_0_st_v2')
+  
+}
 
 
 # GPL6244	[HuGene-1_0-st] Affymetrix Human Gene 1.0 ST Array [transcript (gene) version]
 
 GPL6244_read <- function(file_list){
-  annotation_chip(oligo_workflow(file_list = file_list),
+  annotation_chip(oligo_workflow(file_list = file_list,
+                                 rma_target = 'core'),
                   biomart_attribute_name = 'affy_hugene_1_0_st_v1')
 }
 
@@ -206,7 +226,8 @@ GPL6244_read <- function(file_list){
 #	[HuGene-2_1-st] Affymetrix Human Gene 2.1 ST Array [transcript (gene) version]
 
 GPL17692_read <- function(file_list){
-  annotation_chip(oligo_workflow(file_list = file_list),
+  annotation_chip(oligo_workflow(file_list = file_list,
+                                 rma_target = 'core'),
                   biomart_attribute_name = 'affy_hugene_2_0_st_v1')
   
 }
