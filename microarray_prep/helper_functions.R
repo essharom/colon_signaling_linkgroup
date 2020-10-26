@@ -86,6 +86,18 @@ get_platform_function <- function(platform_name){
     return (GPL17692_read)
   }
   
+  if (platform_name == 'GPL6244'){
+    return (GPL6244_read)
+  }
+  
+  if (platform_name == 'GPL96'){
+    return (GPL96_read)
+  }
+  
+  if (platform_name == 'GPL97'){
+    return (GPL97_read)
+  }
+  
 }
 
 
@@ -102,23 +114,7 @@ get_platform_function <- function(platform_name){
 #
 
 
-# TODO function to summarize by sample (median) and by protein (sum) instead of doing it at every platform
-# sample_agg <- function(df){
-#   df <- df %>% 
-#     group_by(sample_id, uniprotswissprot) %>% 
-#     summarise(expression = median(expression)) %>% 
-#     ungroup()
-#   
-# }
-
-
-
-affy_workflow <- function(file_list, affy_cdfname, biomart_attribute_name){
-  raw_data = affy::ReadAffy(verbose=TRUE, filenames = file_list, cdfname = affy_cdfname) # read the row data to raw.data
-  rma_df = affy::rma(raw_data) # mas5(); normalise the raw data 
-  expression_df = exprs(rma_df)	%>% 
-    as.data.frame() # get the normalised data in a readable matrix
-  
+annotation_chip <- function(expression_df, biomart_attribute_name){
   probes = expression_df %>% 
     mutate(probe_id = row.names(expression_df))
   
@@ -136,103 +132,84 @@ affy_workflow <- function(file_list, affy_cdfname, biomart_attribute_name){
     pivot_longer(cols = !uniprotswissprot, names_to = "sample_id", values_to = "expression") %>% 
     group_by(uniprotswissprot) %>% 
     summarise(expression = median(expression))
-  
 }
 
 
-#GPL570 
+affy_workflow <- function(file_list, affy_cdfname){
+  raw_data = affy::ReadAffy(verbose=TRUE, filenames = file_list, cdfname = affy_cdfname) # read the row data to raw.data
+  rma_df = affy::rma(raw_data) # mas5(); normalise the raw data 
+  expression_df = exprs(rma_df)	%>% 
+    as.data.frame() # get the normalised data in a readable matrix
+}
+
+oligo_workflow <- function(file_list){
+  raw_data <- oligo::read.celfiles(verbose=TRUE, filenames=file_list)
+  rma_df <- oligo::rma(raw_data) # mas5(); normalise the raw data
+  expression_df = exprs(rma_df)	%>%
+    as.data.frame() # get the normalised data in a readable matrix
+}
+
+# GPL96
+# [HG-U133A] Affymetrix Human Genome U133A Array
+
+GPL96_read <- function(file_list){
+  annotation_chip(affy_workflow(file_list = file_list,
+                                affy_cdfname = "HG-U133A"),
+                  biomart_attribute_name = 'affy_hg_u133a')
+}
+
+# GPL97
+# [HG-U133B] Affymetrix Human Genome U133B Array
+
+GPL97_read <- function(file_list){
+  annotation_chip(affy_workflow(file_list = file_list,
+                                affy_cdfname = "HG-U133B"),
+                  biomart_attribute_name = 'affy_hg_u133b')
+}
+
+# GPL570 
+# [HG-U133_Plus_2] Affymetrix Human Genome U133 Plus 2.0 Array
 #library("hgu133plus2.db") #GPL570 platform
 
-#file_list = sample_df$file_path[1:2]
+#file_list = sample_df$file_path[3:5]
 
 GPL570_read <- function(file_list){
-  affy_workflow(file_list = file_list,
-                affy_cdfname = "HG-U133_Plus_2",
-                biomart_attribute_name = 'affy_hg_u133_plus_2')
+  annotation_chip(affy_workflow(file_list = file_list,
+                                affy_cdfname = "HG-U133_Plus_2"),
+                  biomart_attribute_name = 'affy_hg_u133_plus_2')
 }
 
-
-
-
-
-# GPL570_read <- function(file_list){
-#   raw_data = ReadAffy(verbose=TRUE, filenames=file_list, cdfname="HG-U133_Plus_2") # read the row data to raw.data
-#   rma_df = rma(raw_data) # mas5(); normalise the raw data 
-#   expression_df = exprs(rma_df)	%>% 
-#     as.data.frame() # get the normalised data in a readable matrix
-#   
-#   probes = expression_df %>% 
-#     mutate(probe_id = row.names(expression_df))
-# 
-#   annot <- getBM(attributes=c('affy_hg_u133_plus_2','uniprotswissprot'), mart = ensembl) %>% 
-#     dplyr::rename(probe_id = affy_hg_u133_plus_2)
-#   
-#   affy <- annot %>% 
-#     filter(uniprotswissprot!="",
-#            probe_id!="") %>% 
-#     left_join(probes) %>%
-#     dplyr::select(!probe_id) %>% 
-#     group_by(uniprotswissprot) %>% 
-#     summarise_all(sum) %>%
-#     ungroup() %>% 
-#     pivot_longer(cols = !uniprotswissprot, names_to = "sample_id", values_to = "expression") %>% 
-#     group_by(uniprotswissprot) %>% 
-#     summarise(expression = median(expression))
-# }
-# 
-
-#GPL571 
+# GPL571 
+# [HG-U133A_2] Affymetrix Human Genome U133A 2.0 Array
 #library("hgu133a2.db") #GPL571 platform
 
 GPL571_read <- function(file_list){
-  affy_workflow(file_list = file_list,
-                affy_cdfname = "HG-U133A_2",
-                biomart_attribute_name = 'affy_hg_u133a_2')
+  annotation_chip(affy_workflow(file_list = file_list,
+                                affy_cdfname = "HG-U133A_2"),
+                  biomart_attribute_name = 'affy_hg_u133a_2')
+}
+
+# GPL5175
+# [HuEx-1_0-st] Affymetrix Human Exon 1.0 ST Array [transcript (gene) version]
+
+
+
+# GPL6244	[HuGene-1_0-st] Affymetrix Human Gene 1.0 ST Array [transcript (gene) version]
+
+GPL6244_read <- function(file_list){
+  annotation_chip(oligo_workflow(file_list = file_list),
+                  biomart_attribute_name = 'affy_hugene_1_0_st_v1')
 }
 
 
 # GPL17692	
 #	[HuGene-2_1-st] Affymetrix Human Gene 2.1 ST Array [transcript (gene) version]
 
-
-# TODO
-# GPL17692_read <- function(file_list){
-#   affy_workflow(file_list = file_list,
-#                 affy_cdfname = "HuGene-2_1-st",
-#                 biomart_attribute_name = 'affy_hugene_2_0_st_v1')
-# }
-
 GPL17692_read <- function(file_list){
-  # file_list <- sample_df %>% 
-  #   filter(platform == "GPL17692") %>% 
-  #   select(file_path) %>% 
-  #   as.character()
+  annotation_chip(oligo_workflow(file_list = file_list),
+                  biomart_attribute_name = 'affy_hugene_2_0_st_v1')
   
-  raw_data <- oligo::read.celfiles(verbose=TRUE, filenames=file_list)
-  rma_df <- oligo::rma(raw_data) # mas5(); normalise the raw data
-  expression_df = exprs(rma_df)	%>%
-    as.data.frame() # get the normalised data in a readable matrix
-
-  probes = expression_df %>%
-    mutate(probe_id = as.numeric(row.names(expression_df)))
-
-  annot <- getBM(attributes=c('affy_hugene_2_0_st_v1','uniprotswissprot'), mart = ensembl) %>%
-    dplyr::rename(probe_id = affy_hugene_2_0_st_v1)
-
-  affy <- annot %>%
-    filter(uniprotswissprot!="",
-           probe_id!="") %>%
-    left_join(probes) %>%
-    dplyr::select(!probe_id) %>%
-    group_by(uniprotswissprot) %>%
-    summarise_all(sum) %>%
-    ungroup() %>%
-    pivot_longer(cols = !uniprotswissprot, names_to = "sample_id", values_to = "expression") %>%
-    group_by(uniprotswissprot) %>%
-    summarise(expression = median(expression))
-
 }
-
 
 
 
