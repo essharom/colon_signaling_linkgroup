@@ -4,7 +4,8 @@ tissue_type = 'oesophagus'
 
 # add the new platform's name, which has analysis function in helper functions
 platform_functions_list <- c("GPL570",
-                             "GPL571")
+                             "GPL571",
+                             "GPL17692")
 
 sample_root = "C://Users/sebes/Dropbox/linkgroup/signaling2020_sample/"
 
@@ -17,7 +18,7 @@ sample_df <- sample_cels %>%
   `colnames<-`(c("tissue_type", "condition", "platform", "project", "sample_id")) %>% 
   mutate(file_path = paste0(sample_root, sample_cels))
 
-#GPL17692_read function must be 
+#GPL17692_read function must be finished but oligo exploration package first
 
 tissue_sample_df <- sample_df %>% 
   filter(tissue_type == tissue_type) %>% 
@@ -32,10 +33,11 @@ result_df <- map_dfr(conditions, run_condition, tissue_sample_df)
 result_df_wide <- result_df %>% 
   pivot_wider(names_from = condition, values_from = expression)
 
-# TODO add HUGO GENE SYMBOLS to the `wide` dataframe possibly with biomart
+# add HUGO GENE SYMBOLS to the `wide` dataframe possibly with biomart
 annot_hgnc <- getBM(attributes=c('hgnc_symbol','uniprotswissprot'), mart = ensembl)
 
-result_df_wide <- result_df_wide
+result_df_wide <- result_df_wide %>% 
+  left_join(annot_hgnc)
 
 # SUPPL_RESULT_Table
 # write out result matrix with abundances
