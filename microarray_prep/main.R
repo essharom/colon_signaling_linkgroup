@@ -1,11 +1,15 @@
 source('helper_functions.R')
 
-tissue_type = 'oesophagus'
+current_tissue_type = 'oesophagus'
 
 # add the new platform's name, which has analysis function in helper functions
 platform_functions_list <- c("GPL570",
                              "GPL571",
-                             "GPL17692")
+                             "GPL17692",
+                             "GPL96",
+                             "GPL97",
+                             "GPL5175",
+                             "GPL6244")
 
 sample_root = "C://Users/sebes/Dropbox/linkgroup/signaling2020_sample/"
 
@@ -21,8 +25,7 @@ sample_df <- sample_cels %>%
 #GPL17692_read function must be finished but oligo exploration package first
 
 tissue_sample_df <- sample_df %>% 
-  filter(tissue_type == tissue_type) %>% 
-  filter(platform %in% platform_functions_list)
+  dplyr::filter(tissue_type == current_tissue_type)
 
 conditions <- unique(tissue_sample_df$condition)
 
