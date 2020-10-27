@@ -20,11 +20,11 @@ library("affy")
 #   return(x)
 # }
 
-data_download <- function(cancer_type, GSE_ID, GPL_ID, phenotype, pheno_data, pheno_term, cell_files){
+data_download <- function(cancer_type, GSE_ID, GPL_ID, phenotype, pheno_data, field, pheno_term, cell_files){
   if(length(pheno_term[[1]]) != 0){
     files = ""
-    for(j in 1:length(pheno_term[1])){
-      files = append(files, cell_files[grep(pheno_term[[j]], pheno_data[['title']])])
+    for(j in 1:length(pheno_term[[1]])){
+      files = append(files, cell_files[grep(pheno_term[[1]][j], pheno_data[[field]])])
     }
     dir.create(paste("./Data/", cancer_type, phenotype,  GPL_ID, sep = ""))
     dir.create(paste("./Data/", cancer_type, phenotype,  GPL_ID, "/", GSE_ID, sep = ""))
@@ -32,6 +32,7 @@ data_download <- function(cancer_type, GSE_ID, GPL_ID, phenotype, pheno_data, ph
               paste("./Data/", cancer_type, phenotype, GPL_ID, "/", GSE_ID, "/", files[-1], sep = ""))
   }
 }
+
 
 ensembl = useEnsembl(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
 attributes = listAttributes(ensembl)
