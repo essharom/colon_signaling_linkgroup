@@ -24,7 +24,8 @@ data_download <- function(cancer_type, GSE_ID, GPL_ID, phenotype, pheno_data, fi
   if(length(pheno_term[[1]]) != 0){
     files = ""
     for(j in 1:length(pheno_term[[1]])){
-      files = append(files, cell_files[grep(pheno_term[[1]][j], pheno_data[[field]])])
+      cell_names = rownames(pheno)[grep(pheno_term[[1]][j], pheno[[field]])]
+      files = append(files, cell_files[grep(paste(cell_names,collapse="|"), cell_files)])
     }
     dir.create(paste("./Data/", cancer_type, phenotype,  GPL_ID, sep = ""))
     dir.create(paste("./Data/", cancer_type, phenotype,  GPL_ID, "/", GSE_ID, sep = ""))

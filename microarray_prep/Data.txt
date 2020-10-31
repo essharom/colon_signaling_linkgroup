@@ -2,9 +2,9 @@ GSE	Cancer_type	Field	Normal	Intermediat	Cancer
 GSE39491	eosophagus	title	Case NE 	Case BE 	N/A
 GSE26886	eosophagus	title	esophageal squamous epithelium	Barrett's esophagus_	esophageal adenocarcinoma
 GSE34619	eosophagus	title	NE-rep	BE-rep	N/A
-GSE13083	eosophagus	title	Silberg*NE	Silberg*BE	
+GSE13083	eosophagus	title	Silberg*NE	Silberg*BE	NA
 GSE1420	eosophagus	title	normal esophageal epithelium 	Barretts esophagus 	adenocarcinoma 
-GSE74553	eosophagus	title	_ESO	N/A	_GEJAC|_tEAC
+GSE74553	eosophagus	title	_ESO		_GEJAC|_tEAC
 GSE40220	esophagus	title	OS		
 GSE43288	pancreatic	title	N	Px|Pan	PaCa
 GSE62452	pancreatic	title	Tn		Tp|Tc|T

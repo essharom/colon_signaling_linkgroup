@@ -5,6 +5,8 @@ library(GEOquery)
 
 #file download
 input_files = read.delim(file = "Data.txt")
+input_files[input_files=="N/A"] = ""
+input_files[is.na(input_files)] = ""
 
 for(i in 1:nrow(input_files)){
   GSE = input_files[i,1]
