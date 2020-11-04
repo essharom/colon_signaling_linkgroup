@@ -1,6 +1,8 @@
 source('helper_functions.R')
 
-current_tissue_type = 'oesophagus'
+library(ggfortify)
+
+current_tissue_type = 'eosophagus'
 
 # add the new platform's name, which has analysis function in helper functions
 platform_functions_list <- c("GPL570",
@@ -11,7 +13,7 @@ platform_functions_list <- c("GPL570",
                              "GPL5175",
                              "GPL6244")
 
-sample_root = "C://Users/sebes/Dropbox/linkgroup/signaling2020_sample/"
+sample_root = "C:/Users/kunsi/OneDrive/Data/"
 
 sample_cels = list.files(path=sample_root, pattern = "(CEL|cel)(.gz)?$", recursive = TRUE)
 
@@ -30,11 +32,32 @@ tissue_sample_df <- sample_df %>%
 conditions <- unique(tissue_sample_df$condition)
 
 # run abundance calculation for a tissue type, call necessary functions
-result_df <- map_dfr(conditions, run_condition, tissue_sample_df)
+result_df <- map(conditions, run_condition, tissue_sample_df) %>%
+  purrr::reduce(left_join, by = "uniprotswissprot")
+
+expression = data.frame(result_df, row.names ="uniprotswissprot")
+expression = data.frame(t(expression))
+rownames(expression) = unlist(lapply(strsplit(rownames(expression), ".", fixed =TRUE), `[[`, 1))
+rownames(expression) = unlist(lapply(strsplit(rownames(expression), "_", fixed =TRUE), `[[`, 1))
+expression[is.na(expression)] = 0
+
+sample_data = data.frame(tissue_sample_df, row.names = "sample_id")
+rownames(sample_data) = unlist(lapply(strsplit(rownames(sample_data), ".", fixed =TRUE), `[[`, 1))
+rownames(sample_data) = unlist(lapply(strsplit(rownames(sample_data), "_", fixed =TRUE), `[[`, 1))
+
+
+data = merge(x=expression, y= sample_data[,1:4], by ="row.names", all = TRUE)
+data = data.frame(data, row.names = "Row.names")
+
+pca_res <- stats::prcomp(data[,1:17835], scale. = TRUE)
+
+autoplot(pca_res)
 
 # make table human readable
 result_df_wide <- result_df %>% 
   pivot_wider(names_from = condition, values_from = expression)
+
+GSM970010_BE0102C1-RE.CEL.gz
 
 # add HUGO GENE SYMBOLS to the `wide` dataframe possibly with biomart
 annot_hgnc <- getBM(attributes=c('hgnc_symbol','uniprotswissprot'), mart = ensembl)
