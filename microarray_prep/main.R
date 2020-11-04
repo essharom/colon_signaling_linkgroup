@@ -39,9 +39,10 @@ expression = data.frame(result_df, row.names ="uniprotswissprot")
 expression = data.frame(t(expression))
 rownames(expression) = unlist(lapply(strsplit(rownames(expression), ".", fixed =TRUE), `[[`, 1))
 rownames(expression) = unlist(lapply(strsplit(rownames(expression), "_", fixed =TRUE), `[[`, 1))
-expression[is.na(expression)] = 0
+expression=expression[ , colSums(is.na(expression)) == 0]
 
 sample_data = data.frame(tissue_sample_df, row.names = "sample_id")
+
 rownames(sample_data) = unlist(lapply(strsplit(rownames(sample_data), ".", fixed =TRUE), `[[`, 1))
 rownames(sample_data) = unlist(lapply(strsplit(rownames(sample_data), "_", fixed =TRUE), `[[`, 1))
 
@@ -49,9 +50,12 @@ rownames(sample_data) = unlist(lapply(strsplit(rownames(sample_data), "_", fixed
 data = merge(x=expression, y= sample_data[,1:4], by ="row.names", all = TRUE)
 data = data.frame(data, row.names = "Row.names")
 
-pca_res <- stats::prcomp(data[,1:17835], scale. = TRUE)
+pca_res <- stats::prcomp(data[,1:1496], scale. = TRUE)
 
-autoplot(pca_res)
+autoplot(pca_res, data = data, colour = "condition")
+autoplot(pca_res, data = data, colour = "project")
+autoplot(pca_res, data = data, colour = "platform")
+autoplot(pca_res, data = data, colour = "project", shape = "platform")
 
 # make table human readable
 result_df_wide <- result_df %>% 
