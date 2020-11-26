@@ -49,7 +49,7 @@ run_condition <- function(condition_name, df){
   # TODO median aggregation seems like a good option, but for aggregating probabilities, possibly some better function exists
   result <- map_dfr(platforms, run_platform, condition_df) %>% 
     group_by(uniprotswissprot) %>% 
-    summarise(expression = median(expression)) %>%  
+    summarise(expression = median(expression, na.rm = TRUE)) %>%  
     mutate(condition = condition_name)
   
   return(result)
@@ -137,7 +137,7 @@ annotation_chip <- function(expression_df, biomart_attribute_name){
     ungroup() %>% 
     pivot_longer(cols = !uniprotswissprot, names_to = "sample_id", values_to = "expression") %>% 
     group_by(uniprotswissprot) %>% 
-    summarise(expression = median(expression))
+    summarise(expression = median(expression, na.rm=TRUE))
 }
 
 
@@ -233,5 +233,16 @@ GPL17692_read <- function(file_list){
   
 }
 
+# GPL18990
+# [Xcel] Affymetrix Human Almac Xcel Array
+
+# GPL18990_read <- function(file_list){
+#   
+#   #file_list <- sample_df$file_path[1:2]
+#   annotation_chip(oligo_workflow(file_list = file_list,
+#                                  rma_target = 'full'),
+#                   biomart_attribute_name = 'affy_huex_1_0_st_v2')
+#   
+# }
 
 
