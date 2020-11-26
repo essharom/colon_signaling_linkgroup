@@ -1,0 +1,318 @@
+---
+title: "Colon Cancer analysis"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r, echo = FALSE, results='hide', message =FALSE}
+memory.limit(9999999999)
+
+library(kableExtra)
+library(heatmaply)
+library(knitr)
+library(purrr)
+library(dplyr)
+
+load("B:/OneDrive/Data analysis/01_Data/02_Normalized data/01_Colon/DataInfo.RData")
+
+```
+
+# Data summary
+
+Table below summarizes GEO projects used in the analysis:
+
+
+```{r, echo = FALSE, resutls = "asis", message =FALSE}
+
+
+kable(bind_rows(DataInfo)[,-6], 
+      caption = "Information about included projects") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, bold = T) # 
+```
+
+To further characterize the data use we look at the number of samples belonging to each project, using specific platform and representing a different phenotype:
+
+```{r, echo = FALSE, resutls = "asis", message =FALSE}
+source("ShapeData.R")
+
+kable(PhenoSummary(PhenoData), 
+      caption = "Number of samples per project, platform and phenotpye") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+  row_spec(dim(PhenoSummary(PhenoData))[1], bold = T) %>% # format last row
+  column_spec(1, bold = T) #
+
+```
+
+# Data preprocessing
+
+## Quality analysis
+
+CEL. files belonging to relevant projects were read in using ReadAffy function and array quality was assessed before further processing.
+
+
+```{r, echo = FALSE, resutls = "hide", message =FALSE}
+library(lemon)
+
+load("B:/OneDrive/Data analysis/01_Data/02_Normalized data/01_Colon/NormData.RData")
+load("B:/OneDrive/Data analysis/01_Data/02_Normalized data/01_Colon/GeneExpression.RData")
+
+# Box plots
+source("Visualize.R")
+par(mfrow=c(1,3))
+BP_RMA_BG = BoxPlot(RMA_BG,
+                    Logaritmic = "y",
+                    Title="RMA background correction")
+BP_RMA =BoxPlot(RMA, 
+                    Logaritmic = "y", 
+                    Title="RMA normalization")
+BP_fRMA =  BoxPlot(fRMA, 
+                    Logaritmic = "y", 
+                    Title="fRMA normalization")
+
+
+### PCA plots
+source("ShapeData.R")
+
+RMA_BG_GeneDF = na.omit(List2DF(RMA_BG_GeneExp))
+RMA_GeneDF = na.omit(List2DF(RMA_GeneExp))
+fRMA_GeneDF = na.omit(List2DF(fRMA_GeneExp))
+
+PhenoData = PhenoData[which(rownames(PhenoData) %in% colnames(RMA_GeneDF)),]
+fRMAPheno = PhenoData[which(rownames(PhenoData) %in% colnames(fRMA_GeneDF)),]
+
+PCA_RMA_BG = PCAPlot(RMA_BG_GeneDF,
+                     PhenoData,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") + 
+             ggtitle("RMA background correction")
+PCA_RMA = PCAPlot(RMA_GeneDF,
+                     PhenoData,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") +
+          ggtitle("RMA normalization")
+PCA_fRMA = PCAPlot(fRMA_GeneDF, 
+                     PhenoData,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") + 
+           ggtitle("fRMA normalization")
+grid_arrange_shared_legend(PCA_RMA_BG, PCA_RMA, PCA_fRMA, ncol=3, nrow = 1)
+
+heatmaply(data.frame(t(RMA_BG_GeneDF) %*% as.matrix(RMA_BG_GeneDF)),
+                      col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "RMA background correction")
+heatmaply(data.frame(t(RMA_GeneDF) %*% as.matrix(RMA_GeneDF)),
+                      col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "RMA normalization")
+heatmaply(data.frame(t(fRMA_GeneDF) %*% as.matrix(fRMA_GeneDF)),
+                      col_side_colors = fRMAPheno[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "fRMA background correction")
+```
+
+## Batch removal
+
+
+```{r, echo = FALSE, message = FALSE, warning= FALSE}
+library(YuGene)
+
+load("B:/OneDrive/Data analysis/01_Data/02_Normalized data/01_Colon/BatchCorData.RData")
+
+PCA_RMA_QN = PCAPlot(RMA_QN,
+                     PhenoData,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") + 
+             ggtitle("RMA normalization & quantile normalization")
+PCA_RMA_ComBat = PCAPlot(RMA_Combat, 
+                     PhenoData,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") +
+                 ggtitle("RMA normalization & ComBat batch correction")
+PCA_RMA_SVA = PCAPlot(RMA_SVA, 
+                     PhenoData,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") +
+                 ggtitle("RMA normalization & SVA batch correction")
+PCA_RMA_YuGene = autoplot(pca(t(RMA_YuGene)),
+                     data = PhenoData, 
+                     colour = "Phenotype", 
+                     shape = "GEOStudyID") +
+                 ggtitle("RMA normalization & YuGene batch correction")
+grid_arrange_shared_legend(PCA_RMA_QN,
+                           PCA_RMA_ComBat, 
+                           PCA_RMA_SVA,
+                           PCA_RMA_YuGene,
+                           ncol=2,
+                           nrow = 2)
+
+PCA_fRMA_QN = PCAPlot(fRMA_QN, 
+                     fRMAPheno,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") +
+              ggtitle("fRMA normalization & quantile normalization")
+PCA_fRMA_ComBat = PCAPlot(fRMA_Combat, 
+                     fRMAPheno,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") +
+                  ggtitle("fRMA normalization & ComBat batch correction")
+PCA_fRMA_SVA = PCAPlot(fRMA_SVA, 
+                     fRMAPheno,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") +
+                  ggtitle("fRMA normalization & SVA batch correction")
+PCA_fRMA_YuGene = autoplot(pca(t(fRMA_YuGene)),
+                     data = fRMAPheno, 
+                     colour = "Phenotype", 
+                     shape = "GEOStudyID") + 
+                  ggtitle("fRMA normalization & YuGene batch correction")
+grid_arrange_shared_legend(PCA_fRMA, 
+                           PCA_fRMA_QN, 
+                           PCA_fRMA_ComBat, 
+                           PCA_fRMA_YuGene,
+                           ncol=2,
+                           nrow = 2)
+
+heatmaply(data.frame(t(RMA_QN) %*% as.matrix(RMA_QN)),
+                      col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "RMA normalization & quantile normalization")
+heatmaply(data.frame(t(RMA_Combat) %*% as.matrix(RMA_Combat)),
+                      col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "RMA normalization & ComBat batch correction")
+heatmaply(data.frame(t(RMA_SVA) %*% as.matrix(RMA_SVA)),
+                      col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "RMA normalization & SVA batch correction")
+heatmaply(data.frame(t(RMA_Combat) %*% as.matrix(RMA_Combat)),
+                      col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "RMA normalization & YuGene batch correction")
+
+heatmaply(data.frame(t(fRMA_QN) %*% as.matrix(fRMA_QN)),
+                      col_side_colors = fRMAPheno[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "fRMA normalization & quantile normalization")
+heatmaply(data.frame(t(fRMA_Combat) %*% as.matrix(fRMA_Combat)),
+                      col_side_colors = fRMAPheno[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "fRMA normalization & ComBat batch correction")
+heatmaply(data.frame(t(fRMA_SVA) %*% as.matrix(fRMA_SVA)),
+                      col_side_colors = fRMAPheno[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "fRMA normalization & SVA batch correction")
+heatmaply(data.frame(t(fRMA_YuGene) %*% as.matrix(fRMA_YuGene)),
+                      col_side_colors = fRMAPheno[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "fRMA normalization & YuGene batch correction")
+```
+
+## Add gene name and uniprot ID
+
+```{r}
+#source("Annotate.R")
+#fRMA_Combat = Symbol2UniprotID(fRMA_Combat)
+
+```
+
+
+# Differential gene analysis
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library(limma)
+
+design = model.matrix(~0 + factor(PhenoData$Phenotype))
+colnames(design) = unique(as.character(PhenoData$Phenotype))
+
+fit = lmFit(fRMA_Combat, design)
+contrMatrix = makeContrasts(Normal-Intermediate, Intermediate-Cancer, Normal-Cancer, levels=design)
+fit2 = contrasts.fit(fit, contrMatrix)
+fit2 = eBayes(fit2)
+
+tested = topTable(fit2, adjust = "fdr", sort.by = "B", number = Inf, coef = 1)
+NormIntermDE = tested[tested$adj.P.Val <0.01 & abs(tested$logFC > 2),]
+
+tested = topTable(fit2, adjust = "fdr", sort.by = "B", number = Inf, coef = 2)
+IntermCancerDE = tested[tested$adj.P.Val <0.01 & abs(tested$logFC > 2),]
+
+tested = topTable(fit2, adjust = "fdr", sort.by = "B", number = Inf, coef = 3)
+NormCancerDE = tested[tested$adj.P.Val <0.01 & abs(tested$logFC > 2),]
+
+head(NormIntermDE)
+head(IntermCancerDE)
+head(NormCancerDE)
+
+
+```
+
+# Functional annotation of DE genes
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(clusterProfiler)
+library(org.Hs.eg.db)
+
+NormalIntermGO = enrichGO(gene = rownames(NormIntermDE),
+                          universe = rownames(fRMA),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "SYMBOL",
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.01,
+                          qvalueCutoff = 0.05)
+NormalIntermGO = dropGO(NormalIntermGO, level = 1)
+IntermCancerGO = enrichGO(gene = rownames(IntermCancerDE),
+                          universe = rownames(fRMA),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "SYMBOL",
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.01,
+                          qvalueCutoff = 0.05)
+IntermCancerGO = dropGO(IntermCancerGO, level = 1)
+NormalCancerGO = enrichGO(gene = rownames(NormCancerDE),
+                          universe = rownames(fRMA),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "SYMBOL",
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.01,
+                          qvalueCutoff = 0.05)
+NormalCancerGO = dropGO(NormalCancerGO, level = 1)
+
+grid_arrange_shared_legend(dotplot(dropGO(NormalIntermGO, level = c(1, 2, 3)),showCategory = 25),
+                           dotplot(IntermCancerGO,showCategory = 25),
+                           dotplot(NormalCancerGO,showCategory = 25),
+                           ncol = 3,
+                           nrow = 1)
+
+
+heatplot(NormalIntermGO)
+heatplot(IntermCancerGO)
+heatplot(NormalCancerGO)
+
+```
+
