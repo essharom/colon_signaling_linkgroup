@@ -2,28 +2,26 @@ GSE	Cancer_type	Field	Normal	Intermediat	Cancer
 GSE39491	eosophagus	title	Case NE 	Case BE 	N/A
 GSE26886	eosophagus	title	esophageal squamous epithelium	Barrett's esophagus_	esophageal adenocarcinoma
 GSE34619	eosophagus	title	NE-rep	BE-rep	N/A
-GSE13083	eosophagus	title	Silberg*NE	Silberg*BE	
-GSE1420	eosophagus	title	normal esophageal epithelium 	Barretts esophagus 	adenocarcinoma 
-GSE74553	eosophagus	title	_ESO	N/A	_GEJAC|_tEAC
-GSE40220	esophagus	title	OS		
+GSE13083	eosophagus	source_name_ch1	biopsy of normal esophagus from the same patient as a matched Barrett's esophagus biposy	biopsy of Barrett's esophagus from the same patient as a matched normal esophagus biposy	NA
+GSE1420	eosophagus	title	normal esophageal epithelium |Normal esophageal epithelium 	Barretts esophagus |Barrett's esophagus	adenocarcinoma 
+GSE74553	eosophagus	title	_ESO		_GEJAC|_tEAC
 GSE43288	pancreatic	title	N	Px|Pan	PaCa
-GSE62452	pancreatic	title	Tn		Tp|Tc|T
+GSE62452	pancreatic	source_name_ch1	human pancreatic Non-tumor tissue sample		human pancreatic tumor tissue 
 GSE28735	pancreatic	title	"human pancreatic nontumor tissue, patient sample"		"human pancreatic tumor tissue, patient sample"
-GSE15471	pancreatic	title	N		T
 GSE46234	pancreatic	title	Patient C|Patient N		Patient P|Patient T
-GSE71989	pancreatic	title	", human normal pancreatic tissue"		", human PDAC tissue"
+GSE71989	pancreatic	source_name_ch1	human normal pancreatic tissue		Tissue from PDAC patients
 GSE18490	pancreatic	title	Pancreas		
-GSE32688	pancreatic	title	non-malignant pancreas sample … (mRNA)		human PDAC … (mRNA)
+GSE32688	pancreatic	characteristics_ch1.1	disease status: non-malignant pancreas		disease status: pancreatic cancer
 GSE22780	pancreatic	title	Normal		Tumor
 GSE19650	pancreatic	title	normal main pancreatic duct		Invasive cancer originating in IPMN
-GSE15471	pancreatic	title	N		T
+GSE15471	pancreatic	characteristics_ch1.1	sample: normal		sample: tumor
 GSE106656	gastric	title		Intestinal metaplasia biopsy. Biological replicate	
 GSE78523	gastric	characteristics_ch1.1	status: Healthy Control	status: IIM Control|status: IIM-GC|status: CIM Control|status: CIM-GC	
-GSE130823	gastric	title			: IntestinalGastricCancer
+GSE130823	gastric	source_name_ch1			IntestinalGastricCancer
 GSE27342	gastric	title	control from gastric cancer patient		
 GSE47007	gastric	title			Surgical sample of intestinal-type gastric cancer
 GSE22377	gastric	characteristics_ch1			histological type: intestinal
-GSE66222	gastric	characteristics_ch1		tissue: normal gastric tissue	
+GSE66222	gastric	characteristics_ch1	tissue: normal gastric tissue		
 GSE38749	gastric	characteristics_ch1.2			histological type: Intestinal
 GSE17187	gastric	title			N0|N1
 GSE79973	gastric	title	gastric mucosa_normal_patient		

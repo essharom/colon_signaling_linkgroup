@@ -10,6 +10,7 @@ library(stringr)
 # pre-processing packages
 library("oligo")
 library("affy")
+library(purrr)
 
 # sigmoid <- function(x, m, b){
 #   1 * (exp(m * x + b)/(1 + exp(m * x + b)))
@@ -24,12 +25,20 @@ data_download <- function(cancer_type, GSE_ID, GPL_ID, phenotype, pheno_data, fi
   if(length(pheno_term[[1]]) != 0){
     files = ""
     for(j in 1:length(pheno_term[[1]])){
-      files = append(files, cell_files[grep(pheno_term[[1]][j], pheno_data[[field]])])
+      cell_names = rownames(pheno)[grep(pheno_term[[1]][j], pheno[[field]])]
+      files = append(files, cell_files[grep(paste(cell_names,collapse="|"), cell_files)])
     }
-    dir.create(paste("./Data/", cancer_type, phenotype,  GPL_ID, sep = ""))
-    dir.create(paste("./Data/", cancer_type, phenotype,  GPL_ID, "/", GSE_ID, sep = ""))
-    file.copy(paste("./myData/", files[-1], sep =""), 
+    
+    if(!dir.exists(file.path("./Data/", cancer_type, phenotype,  GPL_ID))){
+      dir.create(paste("./Data/", cancer_type, phenotype,  GPL_ID, sep = ""))
+    }
+    if(!dir.exists(file.path("./Data/", cancer_type, phenotype,  GPL_ID, "/", GSE_ID))){
+      dir.create(paste("./Data/", cancer_type, phenotype,  GPL_ID, "/", GSE_ID, sep = ""))
+    }
+    file.copy(paste("./temp/", files[-1], sep =""), 
               paste("./Data/", cancer_type, phenotype, GPL_ID, "/", GSE_ID, "/", files[-1], sep = ""))
+    file.copy(paste("./temp/", files[-1], sep =""), 
+              paste("./myData/", cancer_type, "/", GSE_ID, "/", files[-1], sep = ""))
   }
 }
 
@@ -47,10 +56,12 @@ run_condition <- function(condition_name, df){
   platforms <- unique(condition_df$platform)
   
   # TODO median aggregation seems like a good option, but for aggregating probabilities, possibly some better function exists
+
   result <- map_dfr(platforms, run_platform, condition_df) %>% 
     group_by(uniprotswissprot) %>% 
     summarise(expression = median(expression, na.rm = TRUE)) %>%  
     mutate(condition = condition_name)
+
   
   return(result)
 }
@@ -66,8 +77,9 @@ run_platform <- function(platform_name, df){
   platform_fun <- get_platform_function(platform_name)
   
   # scale all values on (0 to 1) scale by scales::rescale function
-  result <- platform_fun(platform_samples_df$file_path) %>%
-    mutate(expression = scales::rescale(expression, to = c(0, 1)))
+  result <- platform_fun(platform_samples_df$file_path) 
+  #%>%
+  #  mutate(expression = scales::rescale(expression, to = c(0, 1)))
   
   return(result)
 }
@@ -138,6 +150,7 @@ annotation_chip <- function(expression_df, biomart_attribute_name){
     pivot_longer(cols = !uniprotswissprot, names_to = "sample_id", values_to = "expression") %>% 
     group_by(uniprotswissprot) %>% 
     summarise(expression = median(expression, na.rm=TRUE))
+
 }
 
 
