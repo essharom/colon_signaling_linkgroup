@@ -9,12 +9,11 @@ output:
 memory.limit(9999999999)
 
 library(kableExtra)
-library(heatmaply)
 library(knitr)
 library(purrr)
 library(dplyr)
 
-load("B:/OneDrive/Data analysis/01_Data/02_Normalized data/02_Esophagus/DataInfo.RData")
+load("../../01_Data/02_Normalized data/02_Esophagus/DataInfo.RData")
 
 ```
 
@@ -51,12 +50,34 @@ kable(PhenoSummary(PhenoData),
 
 CEL. files belonging to relevant projects were read in using ReadAffy function and array quality was assessed before further processing.
 
+```{r}
+source("QualityAnalysis.R")
+load("../../01_Data/02_Normalized data/02_Esophagus/RawData.RData")
+
+purrr::map2(RawExp, DataInfo, QualityAnalysis)
+
+load("../../01_Data/02_Normalized data/02_Esophagus/RawData.RData")
+for(i in 3:length(RawExp)){
+  Data=RawExp[[i]]
+  Path = paste(DataInfo[[i]]$Path,"/RawData_QC", sep = "")
+  if(!dir.exists(Path)){dir.create(Path)}
+    
+  PSet = PLM(Data, Path)
+  weightImages(PSet, Path)
+  residualImages(PSet, Path)
+}
+
+
+
+```
+
+
 
 ```{r, echo = FALSE, resutls = "hide", message =FALSE}
 library(lemon)
 
-load("B:/OneDrive/Data analysis/01_Data/02_Normalized data/02_Esophagus/NormData.RData")
-load("B:/OneDrive/Data analysis/01_Data/02_Normalized data/02_Esophagus/GeneExpression.RData")
+load("../../01_Data/02_Normalized data/02_Esophagus/NormData.RData")
+load("../../01_Data/02_Normalized data/02_Esophagus/GeneExpression.RData")
 
 # Box plots
 source("Visualize.R")
@@ -96,6 +117,8 @@ PCA_fRMA = PCAPlot(fRMA_GeneDF,
            ggtitle("fRMA normalization")
 grid_arrange_shared_legend(PCA_RMA_BG, PCA_RMA, PCA_fRMA, ncol=3, nrow = 1)
 
+
+
 heatmaply(data.frame(t(RMA_BG_GeneDF) %*% as.matrix(RMA_BG_GeneDF)),
                       col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
                       seriate = "mean", 
@@ -123,7 +146,7 @@ heatmaply(data.frame(t(fRMA_GeneDF) %*% as.matrix(fRMA_GeneDF)),
 ```{r, echo = FALSE, message = FALSE, warning= FALSE}
 library(YuGene)
 
-load("B:/OneDrive/Data analysis/01_Data/02_Normalized data/02_Esophagus/BatchCorData.RData")
+load("../../01_Data/02_Normalized data/02_Esophagus/BatchCorData.RData")
 
 PCA_RMA_QN = PCAPlot(RMA_QN,
                      PhenoData,
@@ -172,9 +195,9 @@ PCA_fRMA_YuGene = autoplot(pca(t(fRMA_YuGene)),
                      colour = "Phenotype", 
                      shape = "GEOStudyID") + 
                   ggtitle("fRMA normalization & YuGene batch correction")
-grid_arrange_shared_legend(PCA_fRMA, 
-                           PCA_fRMA_QN, 
+grid_arrange_shared_legend(PCA_fRMA_QN, 
                            PCA_fRMA_ComBat, 
+                           PCA_fRMA_SVA,
                            PCA_fRMA_YuGene,
                            ncol=2,
                            nrow = 2)

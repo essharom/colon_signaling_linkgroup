@@ -1,12 +1,10 @@
 library(RColorBrewer)
+library(htmlwidgets)
+library(heatmaply)
 library(ggfortify)
-library(cowplot)
+library(ggplot2)
 library(Biobase)
-library(pvca)
 library(plyr)
-library(snm)
-library(sva)
-
 #############################################################################
 #                                                                           #
 #                             Create boxplots                               #
@@ -49,69 +47,182 @@ BoxPlot = function(Data, Logaritmic = "y", Title){
 }
 
 
-
 #############################################################################
 #                                                                           #
 #                               PCA analysis                                #
 #                                                                           #
 #############################################################################
 
-PCAPlot = function(Data, PhenoData = NULL, colorCol, shapeCol = 10, Title){
-  if(class(Data) == "list")
-  {
-    for(i in 1:length(Data)){
-      if (class(Data[[i]]) %in% c("AffyBatch", "ExpressionSet")){
-        Expr = exprs(Data[[i]])
-        Pheno = pData(Data[[i]])
-      } else {
-        Expr = Data[[i]]
-        Pheno = PhenoData[[i]]
-      }
-      pca = stats::prcomp(t(Expr), 
-                          scale. = TRUE)
-      autoplot(pca,
-               data = Pheno[which(rownames(Pheno) %in% colnames(Expr)),], 
-               colour = colorCol,
-               shape = shapeCol, 
-               title = unique(Pheno[, "GEOStudyID"]))
-    } 
-    
-  } else {
-    pca = stats::prcomp(t(Data), 
-                        scale = TRUE)
-    autoplot(pca, 
-             data = PhenoData[which(rownames(PhenoData) %in% colnames(Data)),], 
-             colour = colorCol, 
-             shape = shapeCol, 
-             title = Title)
+PCAPlot = function(Data, PhenoData = NULL, colorCol, shapeCol = NULL, Title = NULL){
+  
+  pca = stats::prcomp(t(Data), scale = TRUE)
+  if(!is.null(shapeCol)){shapeCol=10}
+  pca = autoplot(pca, 
+            data = PhenoData[which(rownames(PhenoData) %in% colnames(Data)),], 
+            colour = colorCol, 
+            shape = shapeCol) 
+  if(!is.null(Title)){pca + ggtitle(Title)}
+}
+
+
+#############################################################################
+#                                                                           #
+#                             Raw intensity images                          #
+#                                                                           #
+#############################################################################
+
+rawIntensityImages = function(Data, Path){
+  QAPath = paste(Path,"/RawIntensityImages", sep = "")
+  if(!dir.exists(QAPath)){dir.create(QAPath)}
+  
+  if(length(list.files(QAPath)) == 0){
+    for(i in 1:length(colnames(Data))){
+      name = paste(QAPath, "/raw_image",i,".jpg",sep="")
+      jpeg(name)
+      image(Data[,i])
+      dev.off()
+    }
   }
 }
 
 
-
 #############################################################################
 #                                                                           #
-#           Run principal component analysis & plot results                 #
+#                   Array pseudo-image based on weights                     #
 #                                                                           #
 #############################################################################
+# weights in probe-level model represent how much the original data contribute 
+# to the model,with outlines being strongly downregulated
 
-PVCA <- function (Data, PhenoData, Covariates, Threshold = 0.75, title) {
-  if (class(Data)[1] == "data.frame") {
-    expSet <- Norm(Data, PhenoData, normMethod = "rma", backgroundCorrection  = F, normalization = F)
-    
-  } else if (class(Data)[1] == "ExpressionSet") {
-    expSet <- Data
+weightImages = function(Pset, Path){
+  QAPath = paste(Path,"/PseudoImages_Weights", sep = "")
+  if(!dir.exists(QAPath)){dir.create(QAPath)}
+  
+  if(length(list.files(QAPath)) == 0){
+    for(i in 1:Pset@narrays){
+      name = paste(QAPath, "/weight_image",i,".jpg",sep="")
+      jpeg(name)
+      oligo::image(Pset,which=i)
+      dev.off()
+    }
   }
-  PVCAObj <- pvcaBatchAssess(abatch = expSet, threshold = Threshold, batch.factors = Covariates)
+}
+
+
+#############################################################################
+#                                                                           #
+#                   Array pseudo-image based on weights                     #
+#                                                                           #
+#############################################################################
+# residuals represent the difference between original and ideal data according 
+# to probe-level model, with positive residuals indicating larger and negative 
+# residuals indicating smaller intensities than ideal value according to the 
+# model
+
+residualImages = function(Pset, Path){
+  QAPath = paste(Path,"/PseudoImages_Residuals", sep = "")
+  if(!dir.exists(QAPath)){dir.create(QAPath)}
   
-  bp <- barplot(PVCAObj$dat, ylab = expression(bold("Weighted Average Proportion Variance")), 
-                ylim = c(0, 1.1), col = c("navy"), las = 2, font = 2, 
-                main = paste("PVCA of", title, sep = " "))
-  axis(1, at = bp, labels = PVCAObj$label, cex.axis = 0.6, 
-       las = 2, font = 2)
-  values <- PVCAObj$dat
-  new_values <- round(values, 3)
-  text(bp, PVCAObj$dat, labels = new_values, pos = 3, cex = 0.8, font = 2)
+  if(length(list.files(QAPath)) == 0){
+    for(i in 1:Pset@narrays){
+      name = paste(QAPath, "/residuals_image",i,".jpg",sep="")
+      jpeg(name)
+      
+      if(class(PSet)[1] == "oligoPLM"){
+        oligo::image(Pset,which=i, type = "residuals")
+      }else{
+        image(Pset,which=i, type = "resids")
+      }
+      
+      dev.off()
+    }
+  }
+}
+
+
+#############################################################################
+#                                                                           #
+#                               Density plots                               #
+#                                                                           #
+#############################################################################
+
+histograms = function(logData, Path){
+  dataHist = ggplot(logData, aes(logInt, colour = GEOSampleID)) + geom_density() 
+  saveWidget(ggplotly(dataHist), file = file.path(normalizePath(Path, winslash ="/"), "DensityPlot.hthm"))
+}
+
+
+#############################################################################
+#                                                                           #
+#                                 Box plots                                 #
+#                                                                           #
+#############################################################################
+# boxplots alow assesment of scale and distribuation of the data, with differences
+# in scale and center of the boxes indicating that normalization is required
+
+boxplots = function(logData, Path){
+  dataBox = ggplot(logData,aes(GEOSampleID,logInt)) + 
+    theme(axis.text.x = element_text(angle = 90))
+  name = paste(Path, "/Boxplots.jpg",sep="")
+  jpeg(name)
+  dataBox + geom_boxplot()
+  dev.off()
+}
+
+
+#############################################################################
+#                                                                           #
+#                                 Box plots                                 #
+#                                                                           #
+#############################################################################
+
+DistanceHeatmap = function(Data, PhenoData, Path, colorCol, Title = NULL) {
+  if(class(Data)[1] %in% c("AffyBatch", "GeneFeatureSet", "ExpressionSet")){
+    Data = exprs(Data)
+  } 
+  if(is.null(Title)){Title = ""}
+  Dist = dist(t(Data), diag = TRUE)
+  PhenoData = PhenoData[which(rownames(PhenoData) %in% colnames(Data)),]
   
-  PVCAObj
+  heatmaply(as.matrix(Dist),
+            col_side_colors = PhenoData[, colorCol],
+            seriate = "mean", 
+            row_dend_left = TRUE,
+            plot_method = "plotly",
+            main = Title, 
+            file = paste(Path, "DistanceHeatmap.html", sep="/"))
+  
+}
+
+#############################################################################
+#                                                                           #
+#                                 MA plots                                  #
+#                                                                           #
+#############################################################################
+# MA plot for single channel arrays compares array probe intensities to 
+# intensities on the median array and idealy the cloud of data points should 
+# be centered around M=0, since we assume that majority of genes are not 
+# differentially expressed and the number of up- and down-regulates genes is 
+# assumed to be the same
+# variablity of M should be similar for different A values (average intensities),
+# but data normalization may remove some of the dependency of average intensites 
+# on M values
+
+MAPlot = function(Data, Path){
+  QAPath = paste(Path,"/MAPlots", sep = "")
+  if(!dir.exists(QAPath)){dir.create(QAPath)}
+  
+  if(length(list.files(QAPath)) == 0){
+    for (i in 1:length(colnames(Data))){
+      name = paste(QAPath, "/MAplot",i,".jpg",sep="")
+      jpeg(name)
+      if(class(Data)[1] %in% c("AffyBatch", "ExpressionSet")){
+        affy::MAplot(Data, which = i)
+      } else if (class(Data) %in% "GeneFeatureSet") {
+        oligo::MAplot(Data, which = i)
+      }
+      MAplot(Data,which=i)
+      dev.off()
+    }
+  }
 }

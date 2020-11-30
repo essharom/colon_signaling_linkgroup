@@ -36,6 +36,8 @@ ReadCEL = function(Data, Pheno=NULL, QC = FALSE){
     }
   }
   
+  library(affyio)
+  Pheno = cbind(Pheno, ScanDate = get.celfile.dates(files))
   
   ## Read .CEL files
   if(GPL %in% c("GPL6244", "GPL5175", "GPL17692")){
@@ -51,7 +53,7 @@ ReadCEL = function(Data, Pheno=NULL, QC = FALSE){
     if(QC == FALSE){
       QAPath = file.path(Path, "RawData_QA")
     } else {
-      QAPath = file.path(Path, "RawData_Corrected_QA")
+      QAPath = file.path(Path, "RawData_QA_afterQC")
     }
     
     
