@@ -16,6 +16,8 @@ PlatformDB = function(GPL){
     DB = "affy_hugene_1_0_st_v1"
   } else if(GPL == "GPL17692"){
     DB = "affy_hugene_2_0_st_v1"
+  } else if(GPL == "GPL8300"){
+    DB = "affy_hg_u95av2"
   }
   
   DB
