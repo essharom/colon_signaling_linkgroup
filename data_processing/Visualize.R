@@ -56,12 +56,17 @@ BoxPlot = function(Data, Logaritmic = "y", Title){
 PCAPlot = function(Data, PhenoData = NULL, colorCol, shapeCol = NULL, Title = NULL){
   
   pca = stats::prcomp(t(Data), scale = TRUE)
-  if(!is.null(shapeCol)){shapeCol=10}
+  if(is.null(shapeCol)){shapeCol=10}
   pca = autoplot(pca, 
             data = PhenoData[which(rownames(PhenoData) %in% colnames(Data)),], 
             colour = colorCol, 
             shape = shapeCol) 
-  if(!is.null(Title)){pca + ggtitle(Title)}
+  if(!is.null(Title)){
+    pca + ggtitle(Title)
+  } else {
+    pca
+  }
+  
 }
 
 

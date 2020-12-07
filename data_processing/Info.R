@@ -2,7 +2,7 @@ library(GEOquery)
 
 
 ## Read in info file about data sets
-Info <- function(Path, infoFile, PlatformUsed = NULL, Tissue = NULL){
+Info <- function(Path, infoFile, PlatformUsed = NULL, Tissue = NULL, QC = NULL){
   DataSet = read.csv(infoFile, header = TRUE, sep = "\t", na.strings = c("NA", "-", "", "N/A"))
   
   if(!is.null(PlatformUsed)){
@@ -10,6 +10,9 @@ Info <- function(Path, infoFile, PlatformUsed = NULL, Tissue = NULL){
   }
   if(!is.null(Tissue)){
     DataSet = DataSet[DataSet$Tissue == Tissue, ]
+  }
+  if(!is.null(QC)){
+    DataSet = DataSet[which(DataSet[, QC] == 0),]
   }
   DataSet = DataSet[, c("GEOStudyID","GEOPlatformID", "PlatformType", "Organism", "Tissue")]
   

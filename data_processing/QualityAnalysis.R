@@ -23,12 +23,18 @@ QualityAnalysis = function(Data, DataInfo, PhenoData){
   PhenoData = pData(Data)
   ExpData = exprs(Data)
   
-  DistanceHeatmap(Data, PhenoData, Path, "Phenotype")
-  PCAPlot(ExpData, PhenoData, colorCol = "Phenotype", Title = unique(PhenoData$GEOStudyID))
+  DistanceHeatmap(Data, 
+                  PhenoData, 
+                  Path, 
+                  "Phenotype")
+  PCAPlot(ExpData, PhenoData, 
+          colorCol = "Phenotype", 
+          shapeCol = "GEOStudyID",
+          Title = unique(PhenoData$GEOStudyID))
   ggsave(paste(Path, "/PCA.jpg", sep = ""))
   histograms(logData, Path)
   boxplots(logData, Path)
-  MAPlot(Data, Path)
+  #MAPlot(Data, Path)
 }
 
 PLM = function(Data, Path){

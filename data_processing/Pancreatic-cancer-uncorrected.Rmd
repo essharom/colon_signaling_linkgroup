@@ -1,20 +1,19 @@
 ---
-title: "Colon Cancer analysis"
-output:
-  html_document:
-    df_print: paged
+title: "Esophagus cancer analysis before removal of arrays with poor quality"
+author: "Nina Kunsic"
+date: "01/12/2020"
+output: html_document
 ---
 
 ```{r, echo = FALSE, results='hide', message =FALSE}
 memory.limit(9999999999)
 
 library(kableExtra)
-library(heatmaply)
 library(knitr)
 library(purrr)
 library(dplyr)
 
-load("../../01_Data/02_Normalized data/01_Colon/DataInfo.RData")
+load("../../01_Data/02_Normalized data/03_Pancreatic/DataInfo.RData")
 
 ```
 
@@ -51,12 +50,20 @@ kable(PhenoSummary(PhenoData),
 
 CEL. files belonging to relevant projects were read in using ReadAffy function and array quality was assessed before further processing.
 
+```{r}
+#source("QualityAnalysis.R")
+#load("../../01_Data/02_Normalized data/03_Pancreatic/RawData.RData")
+
+#purrr::map2(RawExp, DataInfo, QualityAnalysis)
+```
+
+
 
 ```{r, echo = FALSE, resutls = "hide", message =FALSE}
 library(lemon)
 
-load("../../01_Data/02_Normalized data/01_Colon/NormData.RData")
-load("../../01_Data/02_Normalized data/01_Colon/GeneExpression.RData")
+load("../../01_Data/02_Normalized data/02_Esophagus/NormData.RData")
+load("../../01_Data/02_Normalized data/02_Esophagus/GeneExpression.RData")
 
 # Box plots
 source("Visualize.R")
@@ -71,10 +78,7 @@ BP_fRMA =  BoxPlot(fRMA,
                     Logaritmic = "y", 
                     Title="fRMA normalization")
 
-
 ### PCA plots
-source("ShapeData.R")
-
 RMA_BG_GeneDF = na.omit(List2DF(RMA_BG_GeneExp))
 RMA_GeneDF = na.omit(List2DF(RMA_GeneExp))
 fRMA_GeneDF = na.omit(List2DF(fRMA_GeneExp))
@@ -99,6 +103,8 @@ PCA_fRMA = PCAPlot(fRMA_GeneDF,
            ggtitle("fRMA normalization")
 grid_arrange_shared_legend(PCA_RMA_BG, PCA_RMA, PCA_fRMA, ncol=3, nrow = 1)
 
+
+
 heatmaply(data.frame(t(RMA_BG_GeneDF) %*% as.matrix(RMA_BG_GeneDF)),
                       col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
                       seriate = "mean", 
@@ -117,6 +123,7 @@ heatmaply(data.frame(t(fRMA_GeneDF) %*% as.matrix(fRMA_GeneDF)),
                       row_dend_left = TRUE,
                       plot_method = "plotly",
                       main = "fRMA background correction")
+
 ```
 
 ## Batch removal
@@ -125,7 +132,7 @@ heatmaply(data.frame(t(fRMA_GeneDF) %*% as.matrix(fRMA_GeneDF)),
 ```{r, echo = FALSE, message = FALSE, warning= FALSE}
 library(YuGene)
 
-load("../../01_Data/02_Normalized data/01_Colon/BatchCorData.RData")
+load("../../01_Data/02_Normalized data/02_Esophagus/BatchCorData.RData")
 
 PCA_RMA_QN = PCAPlot(RMA_QN,
                      PhenoData,
@@ -176,7 +183,7 @@ PCA_fRMA_YuGene = autoplot(pca(t(fRMA_YuGene)),
                   ggtitle("fRMA normalization & YuGene batch correction")
 grid_arrange_shared_legend(PCA_fRMA_QN, 
                            PCA_fRMA_ComBat, 
-                           PCA_fRMA_SVA, 
+                           PCA_fRMA_SVA,
                            PCA_fRMA_YuGene,
                            ncol=2,
                            nrow = 2)
@@ -230,89 +237,5 @@ heatmaply(data.frame(t(fRMA_YuGene) %*% as.matrix(fRMA_YuGene)),
                       row_dend_left = TRUE,
                       plot_method = "plotly",
                       main = "fRMA normalization & YuGene batch correction")
-```
-
-## Add gene name and uniprot ID
-
-```{r}
-#source("Annotate.R")
-#fRMA_Combat = Symbol2UniprotID(fRMA_Combat)
-
-```
-
-
-# Differential gene analysis
-```{r, echo = FALSE, message = FALSE, warning = FALSE}
-library(limma)
-
-design = model.matrix(~0 + factor(PhenoData$Phenotype))
-colnames(design) = unique(as.character(PhenoData$Phenotype))
-
-fit = lmFit(fRMA_Combat, design)
-contrMatrix = makeContrasts(Normal-Intermediate, Intermediate-Cancer, Normal-Cancer, levels=design)
-fit2 = contrasts.fit(fit, contrMatrix)
-fit2 = eBayes(fit2)
-
-tested = topTable(fit2, adjust = "fdr", sort.by = "B", number = Inf, coef = 1)
-NormIntermDE = tested[tested$adj.P.Val <0.01 & abs(tested$logFC > 2),]
-
-tested = topTable(fit2, adjust = "fdr", sort.by = "B", number = Inf, coef = 2)
-IntermCancerDE = tested[tested$adj.P.Val <0.01 & abs(tested$logFC > 2),]
-
-tested = topTable(fit2, adjust = "fdr", sort.by = "B", number = Inf, coef = 3)
-NormCancerDE = tested[tested$adj.P.Val <0.01 & abs(tested$logFC > 2),]
-
-head(NormIntermDE)
-head(IntermCancerDE)
-head(NormCancerDE)
-
-
-```
-
-# Functional annotation of DE genes
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-library(clusterProfiler)
-library(org.Hs.eg.db)
-
-NormalIntermGO = enrichGO(gene = rownames(NormIntermDE),
-                          universe = rownames(fRMA),
-                          OrgDb = org.Hs.eg.db,
-                          keyType = "SYMBOL",
-                          ont = "BP",
-                          pAdjustMethod = "BH",
-                          pvalueCutoff = 0.01,
-                          qvalueCutoff = 0.05)
-NormalIntermGO = dropGO(NormalIntermGO, level = 1)
-IntermCancerGO = enrichGO(gene = rownames(IntermCancerDE),
-                          universe = rownames(fRMA),
-                          OrgDb = org.Hs.eg.db,
-                          keyType = "SYMBOL",
-                          ont = "BP",
-                          pAdjustMethod = "BH",
-                          pvalueCutoff = 0.01,
-                          qvalueCutoff = 0.05)
-IntermCancerGO = dropGO(IntermCancerGO, level = 1)
-NormalCancerGO = enrichGO(gene = rownames(NormCancerDE),
-                          universe = rownames(fRMA),
-                          OrgDb = org.Hs.eg.db,
-                          keyType = "SYMBOL",
-                          ont = "BP",
-                          pAdjustMethod = "BH",
-                          pvalueCutoff = 0.01,
-                          qvalueCutoff = 0.05)
-NormalCancerGO = dropGO(NormalCancerGO, level = 1)
-
-grid_arrange_shared_legend(dotplot(dropGO(NormalIntermGO, level = c(1, 2, 3)),showCategory = 25),
-                           dotplot(IntermCancerGO,showCategory = 25),
-                           dotplot(NormalCancerGO,showCategory = 25),
-                           ncol = 3,
-                           nrow = 1)
-
-
-heatplot(NormalIntermGO)
-heatplot(IntermCancerGO)
-heatplot(NormalCancerGO)
-
 ```
 
