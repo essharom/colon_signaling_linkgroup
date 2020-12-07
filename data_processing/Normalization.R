@@ -11,7 +11,7 @@ library(arrayQualityMetrics)
 #############################################################################
 
 # Read raw data (.CEL) files
-ReadCEL = function(Data, Pheno=NULL, QC = FALSE){
+ReadCEL = function(Data, Pheno=NULL, QC = NULL){
   if (is.list(Data)) {
     DataID = as.character(unlist(Data$GEOStudyID))
     GPL = Data$GEOPlatformID
@@ -27,12 +27,12 @@ ReadCEL = function(Data, Pheno=NULL, QC = FALSE){
                       recursive = T)
   
   
-  if(QC == TRUE){
+  if(!is.null(QC)){
     # Remove files with poor quality
-    removeFiles = rownames(Pheno)[which(Pheno$Remove == 1)]
+    removeFiles = rownames(Pheno)[which(Pheno[, QC] == 1)]
     if(length(removeFiles) != 0){
       files = files[!Reduce(`|`, lapply(removeFiles, function(y) endsWith(files, y)))]
-      Pheno = Pheno[-which(Pheno$Remove == 1), ]
+      Pheno = Pheno[which(Pheno[, QC] == 0), ]
     }
   }
   
@@ -50,7 +50,7 @@ ReadCEL = function(Data, Pheno=NULL, QC = FALSE){
                         phenoData = AnnotatedDataFrame(Pheno))
     
     
-    if(QC == FALSE){
+    if(is.null(QC)){
       QAPath = file.path(Path, "RawData_QA")
     } else {
       QAPath = file.path(Path, "RawData_QA_afterQC")
@@ -58,7 +58,7 @@ ReadCEL = function(Data, Pheno=NULL, QC = FALSE){
     
     
     if(!dir.exists(QAPath) | length(list.files(QAPath)) == 0){
-      arrayQualityMetrics(RawData, outdir = QAPath)
+      #arrayQualityMetrics(RawData, outdir = QAPath)
       gc()
     }
     

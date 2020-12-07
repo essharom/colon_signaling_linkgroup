@@ -51,24 +51,10 @@ kable(PhenoSummary(PhenoData),
 CEL. files belonging to relevant projects were read in using ReadAffy function and array quality was assessed before further processing.
 
 ```{r}
-source("QualityAnalysis.R")
-load("../../01_Data/02_Normalized data/02_Esophagus/RawData.RData")
+#source("QualityAnalysis.R")
+#load("../../01_Data/02_Normalized data/02_Esophagus/RawData.RData")
 
-purrr::map2(RawExp, DataInfo, QualityAnalysis)
-
-load("../../01_Data/02_Normalized data/02_Esophagus/RawData.RData")
-for(i in 3:length(RawExp)){
-  Data=RawExp[[i]]
-  Path = paste(DataInfo[[i]]$Path,"/RawData_QC", sep = "")
-  if(!dir.exists(Path)){dir.create(Path)}
-    
-  PSet = PLM(Data, Path)
-  weightImages(PSet, Path)
-  residualImages(PSet, Path)
-}
-
-
-
+#purrr::map2(RawExp, DataInfo, QualityAnalysis)
 ```
 
 

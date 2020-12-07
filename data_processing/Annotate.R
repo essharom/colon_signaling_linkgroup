@@ -66,7 +66,11 @@ Probe2Entrez <- function(Data, Info){
 
 Probe2Symbol <- function(Data, Info){
   annotationDB = PlatformDB(Info$GEOPlatformID)
-  ProbExp = exprs(Data)
+  if(class(Data)[1] == "ExpressionSet"){
+    ProbExp = exprs(Data)
+  } else {
+    ProbExp = Data
+  }
   
   probes = row.names(ProbExp)
   

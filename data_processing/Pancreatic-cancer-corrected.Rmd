@@ -1,0 +1,118 @@
+---
+title: "Pancreatic cancer analysis after removal of arrays with poor quality"
+author: "Nina Kunsic"
+date: "01/12/2020"
+output: html_document
+---
+
+```{r, echo = FALSE, results='hide', message =FALSE}
+memory.limit(9999999999)
+
+library(kableExtra)
+library(heatmaply)
+library(knitr)
+library(purrr)
+library(dplyr)
+
+load("../../01_Data/02_Normalized data/03_Pancreatic/DataInfo_afterQC.RData")
+
+```
+
+# Data summary
+
+Table below summarizes GEO projects used in the analysis:
+
+
+```{r, echo = FALSE, resutls = "asis", message =FALSE}
+
+
+kable(bind_rows(DataInfo)[,-6], 
+      caption = "Information about included projects") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, bold = T) # 
+```
+
+To further characterize the data use we look at the number of samples belonging to each project, using specific platform and representing a different phenotype:
+
+```{r, echo = FALSE, resutls = "asis", message =FALSE}
+source("ShapeData.R")
+
+kable(PhenoSummary(PhenoData), 
+      caption = "Number of samples per project, platform and phenotpye") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+  row_spec(dim(PhenoSummary(PhenoData))[1], bold = T) %>% # format last row
+  column_spec(1, bold = T) #
+
+```
+
+# Data preprocessing
+
+## Quality analysis
+
+CEL. files belonging to relevant projects were read in using ReadAffy function and array quality was assessed before further processing.
+
+
+```{r, echo = FALSE, resutls = "hide", message =FALSE}
+library(lemon)
+
+load("../../01_Data/02_Normalized data/03_Pancreatic/NormData_afterQC.RData")
+load("../../01_Data/02_Normalized data/03_Pancreatic/GeneExpression_afterQC.RData")
+
+# Box plots
+source("Visualize.R")
+par(mfrow=c(1,3))
+BP_RMA_BG = BoxPlot(RMA_BG,
+                    Logaritmic = "y",
+                    Title="RMA background correction")
+BP_RMA =BoxPlot(RMA, 
+                    Logaritmic = "y", 
+                    Title="RMA normalization")
+BP_fRMA =  BoxPlot(fRMA, 
+                    Logaritmic = "y", 
+                    Title="fRMA normalization")
+
+### PCA plots
+RMA_BG_GeneDF = na.omit(List2DF(RMA_BG_GeneExp))
+RMA_GeneDF = na.omit(List2DF(RMA_GeneExp))
+fRMA_GeneDF = na.omit(List2DF(fRMA_GeneExp))
+
+PhenoData = PhenoData[which(rownames(PhenoData) %in% colnames(RMA_GeneDF)),]
+fRMAPheno = PhenoData[which(rownames(PhenoData) %in% colnames(fRMA_GeneDF)),]
+
+PCA_RMA_BG = PCAPlot(RMA_BG_GeneDF,
+                     PhenoData,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") + 
+             ggtitle("RMA background correction")
+PCA_RMA = PCAPlot(RMA_GeneDF,
+                     PhenoData,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") +
+          ggtitle("RMA normalization")
+PCA_fRMA = PCAPlot(fRMA_GeneDF, 
+                     PhenoData,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") + 
+           ggtitle("fRMA normalization")
+grid_arrange_shared_legend(PCA_RMA_BG, PCA_RMA, PCA_fRMA, ncol=3, nrow = 1)
+
+heatmaply(data.frame(t(RMA_BG_GeneDF) %*% as.matrix(RMA_BG_GeneDF)),
+                      col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "RMA background correction")
+heatmaply(data.frame(t(RMA_GeneDF) %*% as.matrix(RMA_GeneDF)),
+                      col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "RMA normalization")
+heatmaply(data.frame(t(fRMA_GeneDF) %*% as.matrix(fRMA_GeneDF)),
+                      col_side_colors = fRMAPheno[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "fRMA background correction")
+
+```
