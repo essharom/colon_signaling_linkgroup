@@ -1,5 +1,6 @@
 library("biomaRt")
 library(Biobase)
+library(matrixStats)
 
 PlatformDB = function(GPL){
   if(GPL == "GPL96"){
@@ -45,22 +46,42 @@ Probe2UniProt <- function(Data, Info){
   ProtExp
 }
 
-Probe2Entrez <- function(Data, Info){
+Probe2Entrez <- function(Data, Info, method = "median"){
   annotationDB = PlatformDB(Info$GEOPlatformID)
-  ProbExp = exprs(Data)
+  if(class(Data) == "ExpressionSet")
+  {
+    ProbExp = exprs(Data)
+  } else {
+    ProbExp = Data
+  }
+
+  annot = getBM(attributes=c(annotationDB, 'entrezgene_id'), 
+                filters = annotationDB, 
+                values = row.names(ProbExp), 
+                mart = ensembl)
+  annot = annot[-(which(annot[,1] %in% unique(annot[duplicated(annot[,1]),1]))),]
+  ProbExp = ProbExp[which(rownames(ProbExp) %in% annot[,1]),]
   
-  probes = row.names(ProbExp)
+  if(method == "median"){
+    ProbExp = merge(annot, ProbExp, by.x = annotationDB, by.y = "row.names")
+    
+    GeneExp = aggregate(.~entrezgene_id, ProbExp[,-1], FUN = median, na.action = na.omit)
+    
+    rownames(GeneExp) <- GeneExp$entrezgene_id
+    GeneExp <- as.matrix(GeneExp[, -1])
+  } else if (method == "maxIQR"){
+    testStat = rowIQRs(ProbExp)
+    names(testStat) = rownames(ProbExp)
+    
+    map = split.default(testStat, annot[which(annot[,1] %in% names(testStat)), 2])
+    uniqGenes = sapply(map, function(x) names(which.max(x))) %>% stack()
+    colnames(uniqGenes) = c("ProbeID", "EntrezID")
+    
+    GeneExp = ProbExp[which(rownames(ProbExp) %in% uniqGenes$ProbeID),]
+    rownames(GeneExp) = uniqGenes$EntrezID
+  }
   
-  annot <- getBM(attributes=c(annotationDB,'entrezgene_id'), mart = ensembl) %>% 
-    dplyr::rename(probe_id = annotationDB) %>% 
-    dplyr::mutate(probe_id = as.character(probe_id)) %>% 
-    filter(entrezgene_id!="", probe_id!="")
-  
-  ProbExp = merge(annot, ProbExp, by.x = "probe_id", by.y = "row.names")
-  
-  GeneExp = aggregate(.~entrezgene_id, ProbExp[,-1], FUN = median, na.action = na.omit)
-  rownames(GeneExp) <- GeneExp$entrezgene_id
-  GeneExp <- as.matrix(GeneExp[, -1])
+
   
   GeneExp
 }

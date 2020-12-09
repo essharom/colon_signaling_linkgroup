@@ -12,9 +12,9 @@ library(heatmaply)
 
 
 PlatformID   = NULL # Use NULL if you wish to include all of the platforms, or specify GEO platform ID (e.g. "GPL570")
-DataSetInfo = "C:/Users/kunsi/OneDrive/Documents/Microarray data/Data.txt"
-TissueType   = "gastric" 
-DataPath = "C:/Users/kunsi/OneDrive/Documents/Microarray data/01_Raw data"
+DataSetInfo = "B:/OneDrive/Documents/Microarray data/Data.txt"
+TissueType   = "colon" 
+DataPath = "B:/OneDrive/Documents/Microarray data/01_Raw data"
 
 source("Info.R")
 ## Read general info about data sets & extract GEO study ID for the data used
@@ -23,7 +23,7 @@ DataInfo = Info(
   infoFile     = DataSetInfo, 
   PlatformUsed = PlatformID, 
   Tissue       = TissueType,
-  QC           = NULL
+  QC           = "Remove0"
 )
 
 ## Read phenotype information about data sets used
@@ -32,19 +32,24 @@ Description = purrr::map(DataInfo, Pheno)
 
 #############################################################################
 #                                                                           #
-#                             Read raw data                                 #
+#                                 Raw data                                  #
 #                                                                           #
 #############################################################################
 source("Normalization.R")
-RawExp = map2(DataInfo, Description, ReadCEL, QC=NULL)
+RawExp = map2(DataInfo, Description, ReadCEL, QC="Remove0")
 PhenoData = bind_rows(purrr::map(RawExp, pData))
 
 
 save(list = c("RawExp"), 
-     file = "../../01_Data/02_Normalized data/04_Gastric/RawData.RData")
+     file = "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/RawData.RData")
 save(list = c("DataInfo", "Description", "PhenoData"), 
-     file = "../../01_Data/02_Normalized data/04_Gastric/DataInfo.RData")
+     file = "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/DataInfo.RData")
 
+#############################################################################
+#                                                                           #
+#                               Normalized data                             #
+#                                                                           #
+#############################################################################
 
 ## RMA background correction
 RMA_BG = purrr::map(RawExp, 
@@ -52,40 +57,63 @@ RMA_BG = purrr::map(RawExp,
                     normMethod = "rma", 
                     normalization = F)
 
-source("Annotate.R")
-RMA_BG_GeneExp = map2(RMA_BG, 
-                      DataInfo,
-                      Probe2Symbol)
-#RMA_BG_ProtExp = map2(RMA_BG, DataInfo, Probe2UniProt)
-
-
 ## RMA background correction and normalization
 RMA = purrr::map(RawExp, 
                  Norm, 
                  normMethod = "rma", 
                  normalization = T)
-RMA_GeneExp = map2(RMA, 
-                   DataInfo,
-                   Probe2Symbol)
-#RMA_ProtExp = map2(RMA, DataInfo, Probe2UniProt)
-
 
 ## fRMA background correction and normalization
 fRMA = purrr::map(RawExp, 
                   Norm, 
-                  normMethod = "frma")
-fRMA_GeneExp = map2(fRMA, 
-                    DataInfo,
-                    Probe2Symbol)
-#fRMA_ProtExp = map2(fRMA, DataInfo, Probe2UniProt)
+                  normMethod = "frma", 
+                  fRMATarget = "core")
 
 save(list = c("RMA", "RMA_BG", "fRMA"), 
-     file = "../../01_Data/02_Normalized data/04_Gastric/NormData.RData")
+     file = "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/NormData.RData")
+
+#############################################################################
+#                                                                           #
+#                             Probe to gene mapping                         #
+#                                                                           #
+#############################################################################
+source("Annotate.R")
+RMA_BG_GeneExp = map2(RMA_BG, 
+                      DataInfo,
+                      Probe2Entrez,
+                      method = "median")
+RMA_GeneExp = map2(RMA, 
+                   DataInfo,
+                   Probe2Entrez,
+                   method = "median")
+fRMA_GeneExp = map2(fRMA, 
+                    DataInfo,
+                    Probe2Entrez,
+                    method = "median")
 save(list = c("RMA_GeneExp", "RMA_BG_GeneExp", "fRMA_GeneExp"), 
-     file = "../../01_Data/02_Normalized data/04_Gastric/GeneExpression.RData")
+     file = "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/GeneExpression_median.RData")
+
+RMA_BG_GeneExp = map2(RMA_BG, 
+                      DataInfo,
+                      Probe2Entrez,
+                      method = "maxIQR")
+RMA_GeneExp = map2(RMA, 
+                   DataInfo,
+                   Probe2Entrez,
+                   method = "maxIQR")
+fRMA_GeneExp = map2(fRMA, 
+                    DataInfo,
+                    Probe2Entrez,
+                    method = "maxIQR")
+save(list = c("RMA_GeneExp", "RMA_BG_GeneExp", "fRMA_GeneExp"), 
+     file = "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/GeneExpression_maxIQR.RData")
 
 
-
+#############################################################################
+#                                                                           #
+#                             Batch corrected data                          #
+#                                                                           #
+#############################################################################
 ## Compare different normalization methods
 source("ShapeData.R")
 
@@ -116,8 +144,21 @@ fRMA_YuGene = as.matrix(YuGene(as.matrix(fRMA_GeneDF)))
 colnames(fRMA_QN) = colnames(fRMA_GeneDF)
 
 save(list = c("RMA_QN", "RMA_Combat", "RMA_YuGene","fRMA_QN", "fRMA_Combat", "fRMA_YuGene", "RMA_SVA", "fRMA_SVA"), 
-     file = "../../01_Data/02_Normalized data/04_Gastric/BatchCorData.RData")
+     file = "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/BatchCorData.RData")
 
+#############################################################################
+#                                                                           #
+#                                 Gene barcode                              #
+#                                                                           #
+#############################################################################
 
+source("Annotate.R")
 
+library(frma)
 
+bc = purrr::map(fRMA, barcode)
+#bc_DF =  na.omit(List2DF(bc))
+#bc_GeneDF =  na.omit(List2DF(map2(bc, DataInfo[-6], Probe2Entrez)))
+
+save(list = c("bc"), 
+     file = "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/GeneBarcode.RData")

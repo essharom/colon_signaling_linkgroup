@@ -13,7 +13,7 @@ library(knitr)
 library(purrr)
 library(dplyr)
 
-load("../../01_Data/02_Normalized data/02_Esophagus/DataInfo.RData")
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/DataInfo.RData")
 
 ```
 
@@ -48,11 +48,11 @@ kable(PhenoSummary(PhenoData),
 
 ## Quality analysis
 
-CEL. files belonging to relevant projects were read in using ReadAffy function and array quality was assessed before further processing.
+CEL. files belonging to relevant projects were read in using ReadAffy function and visually inspected for  array quality was assessed before further processing.
 
 ```{r}
 #source("QualityAnalysis.R")
-#load("../../01_Data/02_Normalized data/02_Esophagus/RawData.RData")
+#load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/RawData.RData")
 
 #purrr::map2(RawExp, DataInfo, QualityAnalysis)
 ```
@@ -62,8 +62,8 @@ CEL. files belonging to relevant projects were read in using ReadAffy function a
 ```{r, echo = FALSE, resutls = "hide", message =FALSE}
 library(lemon)
 
-load("../../01_Data/02_Normalized data/02_Esophagus/NormData.RData")
-load("../../01_Data/02_Normalized data/02_Esophagus/GeneExpression.RData")
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/NormData.RData")
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/GeneExpression_maxIQR.RData")
 
 # Box plots
 source("Visualize.R")
@@ -126,13 +126,80 @@ heatmaply(data.frame(t(fRMA_GeneDF) %*% as.matrix(fRMA_GeneDF)),
 
 ```
 
+## Maximal variance probe to gene mapping
+
+```{r}
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/GeneExpression_maxIQR.RData")
+
+# Box plots
+source("Visualize.R")
+par(mfrow=c(1,3))
+BP_RMA_BG = BoxPlot(RMA_BG,
+                    Logaritmic = "y",
+                    Title="RMA background correction")
+BP_RMA =BoxPlot(RMA, 
+                    Logaritmic = "y", 
+                    Title="RMA normalization")
+BP_fRMA =  BoxPlot(fRMA, 
+                    Logaritmic = "y", 
+                    Title="fRMA normalization")
+
+### PCA plots
+RMA_BG_GeneDF = na.omit(List2DF(RMA_BG_GeneExp))
+RMA_GeneDF = na.omit(List2DF(RMA_GeneExp))
+fRMA_GeneDF = na.omit(List2DF(fRMA_GeneExp))
+
+PhenoData = PhenoData[which(rownames(PhenoData) %in% colnames(RMA_GeneDF)),]
+fRMAPheno = PhenoData[which(rownames(PhenoData) %in% colnames(fRMA_GeneDF)),]
+
+PCA_RMA_BG = PCAPlot(RMA_BG_GeneDF,
+                     PhenoData,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") + 
+             ggtitle("RMA background correction")
+PCA_RMA = PCAPlot(RMA_GeneDF,
+                     PhenoData,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") +
+          ggtitle("RMA normalization")
+PCA_fRMA = PCAPlot(fRMA_GeneDF, 
+                     PhenoData,
+                     colorCol = "Phenotype",
+                     shapeCol = "GEOStudyID") + 
+           ggtitle("fRMA normalization")
+grid_arrange_shared_legend(PCA_RMA_BG, PCA_RMA, PCA_fRMA, ncol=3, nrow = 1)
+
+
+
+heatmaply(data.frame(t(RMA_BG_GeneDF) %*% as.matrix(RMA_BG_GeneDF)),
+                      col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "RMA background correction")
+heatmaply(data.frame(t(RMA_GeneDF) %*% as.matrix(RMA_GeneDF)),
+                      col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "RMA normalization")
+heatmaply(data.frame(t(fRMA_GeneDF) %*% as.matrix(fRMA_GeneDF)),
+                      col_side_colors = fRMAPheno[,c("GEOStudyID", "Phenotype")],
+                      seriate = "mean", 
+                      row_dend_left = TRUE,
+                      plot_method = "plotly",
+                      main = "fRMA background correction")
+
+```
+
+
 ## Batch removal
 
 
 ```{r, echo = FALSE, message = FALSE, warning= FALSE}
 library(YuGene)
 
-load("../../01_Data/02_Normalized data/02_Esophagus/BatchCorData.RData")
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/BatchCorData.RData")
 
 PCA_RMA_QN = PCAPlot(RMA_QN,
                      PhenoData,

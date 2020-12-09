@@ -81,13 +81,13 @@ ReadCEL = function(Data, Pheno=NULL, QC = NULL){
 #############################################################################
 
 ## Normalize data
-Norm = function(Data, normMethod, backgroundCorrection = T, normalization = T){ #, bioVar = NULL, adjVar = NULL, intVar = NULL, RemoveAdj = T){
+Norm = function(Data, normMethod, backgroundCorrection = T, normalization = T, fRMATarget = NULL){ #, bioVar = NULL, adjVar = NULL, intVar = NULL, RemoveAdj = T){
   PhenoData = pData(Data)
   GPL = unique(PhenoData$GEOPlatformID)
   
   if (normMethod == 'frma'){
     library(frma)
-    ExpSet = frma(Data)
+    ExpSet = frma(Data, target = fRMATarget)
   } else if (normMethod == 'rma') {
     if(GPL %in% c("GPL6244", "GPL5175", "GPL17692")){
       ExpSet = oligo::rma(Data, normalize = normalization, background = backgroundCorrection)
