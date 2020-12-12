@@ -9,7 +9,6 @@ output:
 memory.limit(9999999999)
 
 library(kableExtra)
-library(heatmaply)
 library(knitr)
 library(purrr)
 library(dplyr)
@@ -49,7 +48,15 @@ kable(PhenoSummary(PhenoData),
 
 ## Quality analysis
 
-CEL. files belonging to relevant projects were read in using ReadAffy function and array quality was assessed before further processing.
+CEL. files belonging to relevant projects were read in using ReadAffy function and visually inspected for  array quality was assessed before further processing.
+
+```{r}
+#source("QualityAnalysis.R")
+#load("B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/RawData.RData")
+
+#purrr::map2(RawExp, DataInfo, QualityAnalysis)
+```
+
 
 
 ```{r, echo = FALSE, resutls = "hide", message =FALSE}
@@ -71,10 +78,7 @@ BP_fRMA =  BoxPlot(fRMA,
                     Logaritmic = "y", 
                     Title="fRMA normalization")
 
-
 ### PCA plots
-source("ShapeData.R")
-
 RMA_BG_GeneDF = na.omit(List2DF(RMA_BG_GeneExp))
 RMA_GeneDF = na.omit(List2DF(RMA_GeneExp))
 fRMA_GeneDF = na.omit(List2DF(fRMA_GeneExp))
@@ -99,6 +103,8 @@ PCA_fRMA = PCAPlot(fRMA_GeneDF,
            ggtitle("fRMA normalization")
 grid_arrange_shared_legend(PCA_RMA_BG, PCA_RMA, PCA_fRMA, ncol=3, nrow = 1)
 
+
+
 heatmaply(data.frame(t(RMA_BG_GeneDF) %*% as.matrix(RMA_BG_GeneDF)),
                       col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
                       seriate = "mean", 
@@ -117,15 +123,16 @@ heatmaply(data.frame(t(fRMA_GeneDF) %*% as.matrix(fRMA_GeneDF)),
                       row_dend_left = TRUE,
                       plot_method = "plotly",
                       main = "fRMA background correction")
+
 ```
 
-## Batch removal
 
+## Batch removal
 
 ```{r, echo = FALSE, message = FALSE, warning= FALSE}
 library(YuGene)
 
-load("B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/BatchCorData.RData")
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/BatchCorData_median.RData")
 
 PCA_RMA_QN = PCAPlot(RMA_QN,
                      PhenoData,
@@ -176,7 +183,7 @@ PCA_fRMA_YuGene = autoplot(pca(t(fRMA_YuGene)),
                   ggtitle("fRMA normalization & YuGene batch correction")
 grid_arrange_shared_legend(PCA_fRMA_QN, 
                            PCA_fRMA_ComBat, 
-                           PCA_fRMA_SVA, 
+                           PCA_fRMA_SVA,
                            PCA_fRMA_YuGene,
                            ncol=2,
                            nrow = 2)
@@ -302,13 +309,6 @@ NormalCancerGO = enrichGO(gene = rownames(NormCancerDE),
                           pvalueCutoff = 0.01,
                           qvalueCutoff = 0.05)
 NormalCancerGO = dropGO(NormalCancerGO, level = 1)
-
-grid_arrange_shared_legend(dotplot(dropGO(NormalIntermGO, level = c(1, 2, 3)),showCategory = 25),
-                           dotplot(IntermCancerGO,showCategory = 25),
-                           dotplot(NormalCancerGO,showCategory = 25),
-                           ncol = 3,
-                           nrow = 1)
-
 
 heatplot(NormalIntermGO)
 heatplot(IntermCancerGO)

@@ -1,5 +1,5 @@
 ---
-title: "Esophagus cancer analysis after removal of arrays with poor quality"
+title: "Esophagus cancer analysis before removal of arrays with poor quality"
 output:
   html_document:
     df_print: paged
@@ -9,12 +9,11 @@ output:
 memory.limit(9999999999)
 
 library(kableExtra)
-library(heatmaply)
 library(knitr)
 library(purrr)
 library(dplyr)
 
-load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/DataInfo_afterQC.RData")
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/DataInfo_afterQC_robust.RData")
 
 ```
 
@@ -49,14 +48,22 @@ kable(PhenoSummary(PhenoData),
 
 ## Quality analysis
 
-CEL. files belonging to relevant projects were read in using ReadAffy function and array quality was assessed before further processing.
+CEL. files belonging to relevant projects were read in using ReadAffy function and visually inspected for  array quality was assessed before further processing.
+
+```{r}
+#source("QualityAnalysis.R")
+#load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/RawData_afterQC_robust.RData")
+
+#purrr::map2(RawExp, DataInfo, QualityAnalysis)
+```
+
 
 
 ```{r, echo = FALSE, resutls = "hide", message =FALSE}
 library(lemon)
 
-load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/NormData_afterQC.RData")
-load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/GeneExpression_afterQC.RData")
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/NormData_afterQC_robust.RData")
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/GeneExpression_median_afterQC_robust.RData")
 
 # Box plots
 source("Visualize.R")
@@ -96,6 +103,8 @@ PCA_fRMA = PCAPlot(fRMA_GeneDF,
            ggtitle("fRMA normalization")
 grid_arrange_shared_legend(PCA_RMA_BG, PCA_RMA, PCA_fRMA, ncol=3, nrow = 1)
 
+
+
 heatmaply(data.frame(t(RMA_BG_GeneDF) %*% as.matrix(RMA_BG_GeneDF)),
                       col_side_colors = PhenoData[,c("GEOStudyID", "Phenotype")],
                       seriate = "mean", 
@@ -117,13 +126,13 @@ heatmaply(data.frame(t(fRMA_GeneDF) %*% as.matrix(fRMA_GeneDF)),
 
 ```
 
-## Batch removal
 
+## Batch removal
 
 ```{r, echo = FALSE, message = FALSE, warning= FALSE}
 library(YuGene)
 
-load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/BatchCorData_afterQC.RData")
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/02_Esophagus/BatchCorData_median_afterQC_robust.RData")
 
 PCA_RMA_QN = PCAPlot(RMA_QN,
                      PhenoData,
@@ -174,7 +183,7 @@ PCA_fRMA_YuGene = autoplot(pca(t(fRMA_YuGene)),
                   ggtitle("fRMA normalization & YuGene batch correction")
 grid_arrange_shared_legend(PCA_fRMA_QN, 
                            PCA_fRMA_ComBat, 
-                           PCA_fRMA_SVA, 
+                           PCA_fRMA_SVA,
                            PCA_fRMA_YuGene,
                            ncol=2,
                            nrow = 2)
@@ -229,4 +238,5 @@ heatmaply(data.frame(t(fRMA_YuGene) %*% as.matrix(fRMA_YuGene)),
                       plot_method = "plotly",
                       main = "fRMA normalization & YuGene batch correction")
 ```
+
 

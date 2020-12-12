@@ -1,0 +1,227 @@
+---
+title: "Colon cancer"
+author: "Nina Kunsic"
+date: "11/12/2020"
+output: html_document
+---
+
+```{r, echo = FALSE, results='hide', message =FALSE}
+memory.limit(9999999999)
+
+library(kableExtra)
+library(dplyr)
+library(purrr)
+
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/DataInfo.RData")
+
+```
+
+# Data 
+
+Publicly available colon data used in the analysis came from 5 different studies from just one Affymetrix platforms (see Table \@ref(tab:samples)).
+
+
+```{r samples, echo = FALSE, resutls = "asis", message =FALSE}
+kable(bind_rows(DataInfo)[,-6], 
+      caption = "Information about included projects",
+      booktabs = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, bold = T) # 
+```
+
+All together this resulted in 437 human samples, of which 128 came from normal colon tissue, 131 from adenoma esophagus, and 178 from adenocarcinoma samples. The detailed project-vise information can be seen in Table \@ref(tab:sampleNo1). 
+
+```{r sampleNo1, echo = FALSE, resutls = "asis", message =FALSE}
+source("ShapeData.R")
+
+kable(PhenoSummary(PhenoData), 
+      caption = "Number of samples per project, platform and phenotpye") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+  row_spec(dim(PhenoSummary(PhenoData))[1], bold = T) %>% # format last row
+  column_spec(1, bold = T) #
+
+```
+
+# Data preprocessing
+
+## Quality analysis
+
+CEL. files belonging to projects which used GPL6244, GPL5175 or GPL17692 platform to measure gene expression were read in using read.celfiles function from Bioconductor oligo package, while those from GPL96, GPL570 or GPL571 platform were read in using ReadAffy function from affy Bioconductor package. Array quality was inspected visually by  fitting a probe-level model (PLM), which assumes that probes should behave the same regardless of the sample, so probes that strongly or weakly bind the transcript should do so on all array. Comparison of actually array data with the probe level model, representing ideal data without any noise gives us weights and residuals that we can visualize use to inspect array quality for spatial artifacts, example of which is shown in Figure \@ref(fig:pseudoImages) below. 
+
+```{r pseudoImages, fig.show = "hold", out.width = "50%", fig.align = "default", fig.cap="Pseudo-images for array quality inspection; (top left) pseudo image based on weights showing spatial artifacts, (top right) pseudo image based on residuals showing spatial artifacts, (botom left) pseudo image based on weights with no spatial artifacts, (botom right) pseudo image based on residuals with no spatial artifacts", echo = FALSE}
+knitr::include_graphics(c("B:/OneDrive/Documents/Microarray data/01_Raw data/GSE4183/RawData_QC/PseudoImages_Weights/weight_image1.jpg","B:/OneDrive/Documents/Microarray data/01_Raw data/GSE4183/RawData_QC/PseudoImages_residuals/residuals_image1.jpg", "B:/OneDrive/Documents/Microarray data/01_Raw data/GSE4183/RawData_QC/PseudoImages_Weights/weight_image7.jpg", "B:/OneDrive/Documents/Microarray data/01_Raw data/GSE4183/RawData_QC/PseudoImages_Residuals/residuals_image7.jpg"))
+```
+ 
+Arrays exhibiting spatial artifacts such as these were omitted from future analysis resulting in decreased number of samples. Detailed project-wise number can be seen in the Table \@ref(tab:sampleNo2) below.
+
+```{r sampleNo2, echo = FALSE, resutls = "asis", message =FALSE}
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/DataInfo_afterQC.RData")
+
+kable(PhenoSummary(PhenoData), 
+      caption = "Number of samples per project, platform and phenotpye") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+  row_spec(dim(PhenoSummary(PhenoData))[1], bold = T) %>% # format last row
+  column_spec(1, bold = T) #
+
+```
+
+## Background correction and normalization
+
+### Robust Multi-array Average (RMA)
+
+Robust Multi-array Average (RMA) function performs background correction, normalization and probe-to-probe set summarization. It is the most commonly used normalization method, which is also recommended by Affymetrix.
+
+Background correction is performed on each array individually, while normalization and summarization require multiple arrays to be analyzed simultaneously. Quantile normalization is used to normalize the arrays, making data from different arrays comparable by removing variation due to target preparation and hybridization. This is followed by probe-to-probe set summarization, however due to "probe-effect", grater within-array variability between probes in a probe set than the variability of an individual probe across arrays, probe-level intensities should first be corrected to account for it. In case of MAS5 normalization method originally proposed by Affymetrix, this was achieved by subtracting intensities of mismatch (MM) probes present on Affymetrix platforms from their corresponding perfect match (PM) probe intensities correcting for unwanted, nonspecific-hybridization. However, since up to 30% of MM-probes yield intensities higher than their PM-counterparts, this approach is not generally used. RMA on the other hand estimates parameters of the probe-level model using only PM probes, which are then used to correct their PM probe intensities.
+
+### Frozen Robust Multi-array Average (fRMA)
+
+Frozen Robust Multi-array Average (fRMA) uses similar probe-level model as the one used in the RMA normalization method, but uses the parameters estimated on external data from multiple publicly available projects that used the same platform. This allows for normalization of projects containing small numbers of arrays or even for single array normalization, while also correcting for batch effects due to technical difference between projects. However probe-level model parameters are publicly available for only some of the platfroms and while it is possible to estimate them using makeVectorsAffyBatch function from Bioconductor frmaTools package, this is likely to be very time consuming due to the need to collect numerous samples from different tissues and phenotypes analyzed with the same platform.
+
+Figures \@ref(fig:normalization) below shows the result of RMA and fRMA normalization method on GSE13083 and GSE1420 project which both used GPL96 platform.
+
+```{r normaliztaion, fig.show = "hold", out.width = "50%", fig.align = "default", fig.cap="Comparison of RMA and fRMA normalization methods; (top left) Boxplots of the first two samples in GSE13083 and GSE1420 projects, (top right) plot showing variation along the first two principal components, (botom left) distance heatmap between RMA normalized arrays, (botom right) distance heatmap between fRMA normalized arrays", echo = FALSE}
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/NormData_afterQC.RData")
+
+knitr::include_graphics(c("B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/Normalization/Boxplots.png", "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/Normalization/PCA.png", "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/Normalization/RMA_DistanceHeatmap.png", "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/Normalization/fRMA_DistanceHeatmap.png"))
+
+```
+
+
+## Probe set to gene mapping
+
+Since data comes from different platforms further processing and analysis of combined samples requires mapping from probe set to gene level. To achieve this we first used Biomart for probe to gene annotation mapping, followed by removal of probes that map to more than one gene, since this results in nonspecific expression. And finally by calculating median log2 transformed expression of of all probe sets that bind to the same gene. 
+
+Alternative single probe set-to-gene mappings have also been proposed due to reports of only one or few probe sets correlating with protein expression levels (e.g. only 1, 205225at, out of 9 ESR1 probe sets on Affymetrix HG-U133A platform showed strong differential expression correlated with ER1 protein levels in breast cancer). However, this selection is not straight forward and selection of probe with maximal interquantile range actually resulted in worse performance than meadian expression calculation. This is likely do to presence of probe sets measuring different informs on different pathways as well as the difference is array construction. For example, while older Affymetrix platforms required the measured transcript to be localized near 3' end, this is not the case for newer platforms.
+
+Figure \@ref(fig:probe2genemap) shows the results of probe to gene mapping of RMA and fRMA normalized data by calculating median expression of all probe sets that map specifically to one gene. For the sake comparison, only the data from the first 5 projects were used, since there are no publicly available fRMA normalization vectors for platform GPL17692 used in the last project.
+
+```{r probe2genemap, fig.show = "hold", out.width = "50%", fig.align = "default", fig.cap="Comparison of median  probe to gene mapping of RMA and fRMA normalized data", echo = FALSE}
+
+knitr::include_graphics(c("B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/Probe2GeneMapping/median_Boxplots.png", "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/Probe2GeneMapping/median_PCA.png", "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/Probe2GeneMapping/median_RMA_DistanceHeatmap.png", "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/Probe2GeneMapping/median_fRMA_DistanceHeatmap.png"))
+```
+
+## Batch correction
+
+Looking at the principal component plots and heatmaps in Figure \@ref(fig:probe2genemap), we can see that the main source of variation is actually due to the project and platform from which the data originated. This means, that before further analysis can be performed on the data, we must first account for this variation, otherwise it will occlude the biologically relevant information which we're interested in.
+
+### COMBAT batch correction
+
+Combat batch correction adjusts data for batch effects using empirical Bayes methods by assuming parametric forms for prior distributions on batch effect parameters, which are estimated from the data with know batches and used to adjust it.
+
+### Surugate variable analysis (SVA) based batch correction
+
+Unlike ComBat, surrogate variable analysis (SVA) based batch correction doesn't require the user to specify the bathes, only the primary variable(s) of interest such as phenotype. SVA uses this information to remove the signal due to primary variable(s) of interest to obtain a residual expression matrix, which is then decomposed to identify orthogonal singular vectors or surrogate variables that completely reproduce these signatures. Surrogate variables are then be used to adjust the data for batch effects, however since SVA automatically calculates sources of variation not accounted for by the primary variable(s) of interest it is imperative that the primary variables are well defined to capture all biologically relevant information, otherwise it will be considered as batch effect and removed. For example, SVA is likely to remove variation due to phenotype subtypes unless they are included as the primary variables of interest.
+
+### YuGene batch correction
+
+Unlike ComBat and SVA based batch correction which both adjust the data by removing variation due to batches, YuGene only scales the data using cumulative proportion transform.
+
+Figure \@ref(fig:batchCorrection) shows the effect of different batch correction methods on median probe-to-gene mapped and RMA or fRMA normalized data. For the sake comparison, only the data from the first 5 projects were used, since there are no publicly available fRMA normalization vectors for platform GPL17692 used in the last project. 
+
+```{r batchCorrection, fig.show = "hold", out.width = c("100%", rep("50%",6)), fig.align = "default", fig.cap="Comparison of batch correction methods applied to median probe to gene mapped, RMA or fRMA normalized data", echo = FALSE}
+
+knitr::include_graphics(c("B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/BatchCorrection/afterQC/PCA.png", "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/BatchCorrection/afterQC/RMA_ComBat_DistanceHeatmap.png", "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/BatchCorrection/afterQC/fRMA_ComBat_DistanceHeatmap.png", "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/BatchCorrection/afterQC/RMA_SVA_DistanceHeatmap.png", "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/BatchCorrection/afterQC/fRMA_SVA_DistanceHeatmap.png", "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/BatchCorrection/afterQC/RMA_YuGene_DistanceHeatmap.png", "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/BatchCorrection/afterQC/fRMA_YuGene_DistanceHeatmap.png"))
+```
+
+Based on the PCA plots and heatmaps in Figure \@ref(fig:batchCorrection) above, we can see that both ComBat and SVA based batch correction methods managed to remove the variation due to project and platform from which the data originated and increase sample clustering based on the phenotype of interest. Due to the fact that SVA batch correction may also remove biological variation such as subtypes not provided in the batch correction method, we decided to use ComBat batch corrected data for future analysis. Due to small number of samples left in some of the projects after quality control step, fRMA normalization method would be a better choice than RMA normalization, however due to lack of publicaly available fRMA normalization vectors we decided to use RMA instead.
+
+## Gene barcode
+
+Barcode function in Bioconduction frma package uses publically available microarray data from multiple platforms to define probe set expression distributions. By comparing probe set expression level to this distribution the transcript measured by the probe is classified as either expresses or not. As a result barcode function has to be applied to normalized probe, and not gene-level expression data. 
+
+```{r}
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/GeneBarcode_afterQC.RData")
+
+DistanceHeatmap(bc_GeneDF, PhenoData, "B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/GeneBarcode", c("GEOStudyID", "Phenotype"), "Gene barcode array distance heatmap")
+
+PhenoData = PhenoData[which(rownames(PhenoData) %in% colnames(bc_GeneDF)),]
+
+heatmaply(bc_GeneDF[apply(bc_GeneDF, 1, var)!=0, ],
+            col_side_colors = PhenoData[, c("Phenotype", "GEOStudyID")],
+            seriate = "mean", 
+            row_dend_left = TRUE,
+            plot_method = "plotly",
+            main = "Gene barcode heatmap")
+
+```
+
+
+# Differential gene expression analysis
+
+Differential gene expression analysis was performed with Bioconductior package limma by calculating mean gene expression in each of the phenotype of interest, followed by ANOVA and pairwise comparison. The above analysis was perform of thousands of genes, since microarrays measure gene expression of multiple genes at the same time, therefore the p-values acquired should be corrected for multiple testing to decrease the number of false positives. This can be achieved with for example false discover rate (FDR) or with Benjamini–Hochberg procedure.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+load("B:/OneDrive/Documents/Microarray data/02_Normalized data/01_Colon/BatchCorData_median_afterQC.RData")
+
+library(limma)
+
+design = model.matrix(~0 + factor(PhenoData$Phenotype))
+colnames(design) = unique(as.character(PhenoData$Phenotype))
+
+fit = lmFit(RMA_Combat, design)
+contrMatrix = makeContrasts(Normal-Intermediate, Intermediate-Cancer, Normal-Cancer, levels=design)
+fit2 = contrasts.fit(fit, contrMatrix)
+fit2 = eBayes(fit2)
+
+tested = topTable(fit2, adjust = "fdr", sort.by = "B", number = Inf, coef = 1)
+NormIntermDE = tested[tested$adj.P.Val <0.01 & abs(tested$logFC > 2),]
+NormIntermFC = NormIntermDE$logFC
+names(NormIntermFC) = rownames(NormIntermDE)
+
+tested = topTable(fit2, adjust = "fdr", sort.by = "B", number = Inf, coef = 2)
+IntermCancerDE = tested[tested$adj.P.Val <0.01 & abs(tested$logFC > 2),]
+IntermCancerFC = IntermCancerDE$logFC
+names(IntermCancerFC) = rownames(IntermCancerDE)
+
+tested = topTable(fit2, adjust = "fdr", sort.by = "B", number = Inf, coef = 3)
+NormCancerDE = tested[tested$adj.P.Val <0.01 & abs(tested$logFC > 2),]
+NormCancerFC = NormCancerDE$logFC
+names(NormCancerFC) = rownames(NormCancerDE)
+
+head(NormIntermDE)
+head(IntermCancerDE)
+head(NormCancerDE)
+
+
+```
+
+## Functional annotation of DE genes
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(clusterProfiler)
+library(org.Hs.eg.db)
+
+NormalIntermGO = enrichGO(gene = rownames(NormIntermDE),
+                          universe = rownames(RMA),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "SYMBOL",
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.01,
+                          qvalueCutoff = 0.05)
+NormalIntermGO = dropGO(NormalIntermGO, level = 1)
+IntermCancerGO = enrichGO(gene = rownames(IntermCancerDE),
+                          universe = rownames(RMA),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "SYMBOL",
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.01,
+                          qvalueCutoff = 0.05)
+IntermCancerGO = dropGO(IntermCancerGO, level = 1)
+NormalCancerGO = enrichGO(gene = rownames(NormCancerDE),
+                          universe = rownames(RMA),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "SYMBOL",
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.01,
+                          qvalueCutoff = 0.05)
+NormalCancerGO = dropGO(NormalCancerGO, level = 1)
+
+heatplot(NormalIntermGO, foldChange = NormIntermFC)
+heatplot(IntermCancerGO, foldChange = IntermCancerFC)
+heatplot(NormalCancerGO, foldChange = NormCancerFC)
+
+```
+

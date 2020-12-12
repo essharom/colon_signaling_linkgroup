@@ -17,14 +17,14 @@ BoxPlot = function(Data, Logaritmic = "y", Title){
       Data = purrr::map(Data, exprs)
     }
     ListLength = length(Data)
-    BoxLoc = 1:3
+    BoxLoc = 1:2
     temp = max(unlist(purrr::map(Data, max)))
-    xDim = c(0.5,ListLength*3 + 0.5)
+    xDim = c(0.5,ListLength*2 + 0.5)
     yDim = round_any(temp, 10^ceiling(log10(temp)), f = ceiling)
     cols = brewer.pal(n = ListLength, name = "RdBu")
     
   }
-  boxplot(Data[[1]][,1:3],
+  boxplot(Data[[1]][,1:2],
           at = BoxLoc,
           xlim = xDim,
           ylim = c(1,yDim),
@@ -33,8 +33,8 @@ BoxPlot = function(Data, Logaritmic = "y", Title){
           las = 3,
           col = cols[1])
   for(i in 2:ListLength){
-    BoxLoc = BoxLoc + 3
-    boxplot(Data[[i]][,1:3],
+    BoxLoc = BoxLoc + 2
+    boxplot(Data[[i]][,1:2],
             at=BoxLoc,
             xlim=xDim,
             ylim=c(1,yDim),
@@ -60,7 +60,7 @@ PCAPlot = function(Data, PhenoData = NULL, colorCol, shapeCol = NULL, Title = NU
   pca = autoplot(pca, 
             data = PhenoData[which(rownames(PhenoData) %in% colnames(Data)),], 
             colour = colorCol, 
-            shape = shapeCol) 
+            shape = shapeCol, scale = 0) 
   if(!is.null(Title)){
     pca + ggtitle(Title)
   } else {

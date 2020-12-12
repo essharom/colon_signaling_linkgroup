@@ -1,6 +1,7 @@
 library("biomaRt")
 library(Biobase)
 library(matrixStats)
+library(jetset)
 
 PlatformDB = function(GPL){
   if(GPL == "GPL96"){
@@ -24,6 +25,20 @@ PlatformDB = function(GPL){
   DB
 }
 
+
+PlatformName = function(GPL){
+  if(GPL == "GPL96"){
+    DB = "hgu133a"
+  } else if(GPL == "GPL570"){
+    DB = "hgu133plus2"
+  }else if(GPL == "GPL8300"){
+    DB = "hgu95av2"
+  } else if(GPL %in% c("GPL17692", "GPL6244", "GPL5175", "GPL571", "GPL97")){
+    DB = NULL
+  }
+  
+  DB
+}
 
 ensembl = useEnsembl(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
 attributes = listAttributes(ensembl)
@@ -81,44 +96,67 @@ Probe2Entrez <- function(Data, Info, method = "median"){
     rownames(GeneExp) = uniqGenes$EntrezID
   }
   
-
-  
   GeneExp
 }
 
 
-Probe2Symbol <- function(Data, Info){
+Probe2Symbol <- function(Data, Info, method = "median"){
   annotationDB = PlatformDB(Info$GEOPlatformID)
-  if(class(Data)[1] == "ExpressionSet"){
+  if(class(Data) == "ExpressionSet")
+  {
     ProbExp = exprs(Data)
   } else {
     ProbExp = Data
   }
   
-  probes = row.names(ProbExp)
+  annot = getBM(attributes=c(annotationDB, 'hgnc_symbol'), 
+                filters = annotationDB, 
+                values = row.names(ProbExp), 
+                mart = ensembl)
+  annot = annot[-(which(annot[,1] %in% unique(annot[duplicated(annot[,1]),1]))),]
+  ProbExp = ProbExp[which(rownames(ProbExp) %in% annot[,1]),]
   
-  annot <- getBM(attributes=c(annotationDB,'external_gene_name'), mart = ensembl) %>% 
-    dplyr::rename(probe_id = annotationDB) %>% 
-    dplyr::mutate(probe_id = as.character(probe_id)) %>% 
-    filter(external_gene_name!="", probe_id!="")
-  
-  ProbExp = merge(annot, ProbExp, by.x = "probe_id", by.y = "row.names")
-  
-  GeneExp = aggregate(.~external_gene_name, ProbExp[,-1], FUN = median, na.action = na.omit)
-  rownames(GeneExp) <- GeneExp$external_gene_name
-  GeneExp <- as.matrix(GeneExp[, -1])
+  if(method == "median"){
+    ProbExp = merge(annot[annot[,2]!="",], ProbExp, by.x = annotationDB, by.y = "row.names")
+    
+    GeneExp = aggregate(.~hgnc_symbol, ProbExp[,-1], FUN = median, na.action = na.omit)
+    
+    rownames(GeneExp) <- GeneExp$hgnc_symbol
+    GeneExp <- as.matrix(GeneExp[, -1])
+  } else if (method == "maxIQR"){
+    testStat = rowIQRs(ProbExp)
+    names(testStat) = rownames(ProbExp)
+    
+    map = split.default(testStat, annot[which(annot[,1] %in% names(testStat)), 2])
+    uniqGenes = sapply(map, function(x) names(which.max(x))) %>% stack()
+    colnames(uniqGenes) = c("ProbeID", "GeneSymbol")
+    
+    GeneExp = ProbExp[which(rownames(ProbExp) %in% uniqGenes$ProbeID),]
+    rownames(GeneExp) = uniqGenes$GeneSymbol
+  } else if (method == "jetset"){
+    Platform = PlatformName(Info$GEOPlatformID)
+    GeneSym = as.vector(annot$hgnc_symbol)
+    GeneSym = GeneSym[GeneSym != ""]
+    uniqGenes = jmap(Platform, symbol = GeneSym)
+    uniqGenes = data.frame(ProbeID = unname(uniqGenes), Symbol = names(uniqGenes))
+    uniqGenes = unique(uniqGenes[!is.na(uniqGenes$ProbeID),])
+    
+    GeneExp = ProbExp[which(rownames(ProbExp) %in% uniqGenes$ProbeID),]
+    rownames(GeneExp) = as.vector(uniqGenes$Symbol[which(uniqGenes$ProbeID %in% rownames(GeneExp))])
+    
+  }
   
   GeneExp
 }
 
 
 Symbol2UniprotID = function(Data){
-  annot = getBM(attributes=c('external_gene_name', 'uniprotswissprot'),  mart = ensembl) %>%
-  filter(external_gene_name!="", uniprotswissprot != "")
-  annot = aggregate(uniprotswissprot~external_gene_name, annot, paste, collapse="|")
+  annot = getBM(attributes=c('hgnc_symbol', 'uniprotswissprot'),  mart = ensembl) %>%
+  filter(hgnc_symbol!="", uniprotswissprot != "")
+  annot = aggregate(uniprotswissprot~hgnc_symbol, annot, paste, collapse="|")
 
-  Data = merge(annot, Data, by.x = "external_gene_name", by.y = "row.names", all.y = TRUE)
-  Data = data.frame(Data, row.names = "external_gene_name")
+  Data = merge(annot, Data, by.x = "hgnc_symbol", by.y = "row.names", all.y = TRUE)
+  Data = data.frame(Data, row.names = "hgnc_symbol")
   Data = dplyr::rename(Data, "Swissprot ID" = uniprotswissprot)
 }
 
